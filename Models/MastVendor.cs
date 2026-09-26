@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace back_stock.Models;
+namespace stock_api.Models;
 
 public partial class MastVendor
 {
@@ -30,4 +30,6 @@ public partial class MastVendor
     public DateTime? UpdateDate { get; set; }
 
     public string? UpdateBy { get; set; }
+
+    public virtual ICollection<DocTran> DocTrans { get; set; } = new List<DocTran>();
 }

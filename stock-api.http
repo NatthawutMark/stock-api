@@ -1,6 +1,6 @@
-@back_stock_HostAddress = http://localhost:5213
+@stock-api_HostAddress = http://localhost:5213
 
-GET {{back_stock_HostAddress}}/weatherforecast/
+GET {{stock-api_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###

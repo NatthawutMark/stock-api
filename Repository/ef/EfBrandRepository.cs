@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using back_stock.Interfaces;
-using back_stock.Models;
+using stock_api.Interfaces;
+using stock_api.Models;
 
-namespace back_stock.Repositories.EF;
+namespace stock_api.Repositories.EF;
 
 public class EfBrandRepository : EfGenericRepository<MastBrand>, IBrandRepository
 {

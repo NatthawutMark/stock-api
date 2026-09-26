@@ -1,9 +1,9 @@
 using Dapper;
 using System.Data;
-using back_stock.Interfaces;
-using back_stock.Models;
+using stock_api.Interfaces;
+using stock_api.Models;
 
-namespace back_stock.Repositories.Dapper;
+namespace stock_api.Repositories.Dapper;
 
 public class DapperBrandRepository : IBrandRepository
 {

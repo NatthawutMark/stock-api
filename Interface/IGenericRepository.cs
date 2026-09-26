@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 
-namespace back_stock.Interfaces;
+namespace stock_api.Interfaces;
 
 public interface IGenericRepository<T> where T : class
 {

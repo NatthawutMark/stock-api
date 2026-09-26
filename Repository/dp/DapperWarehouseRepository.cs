@@ -1,9 +1,9 @@
 using Dapper;
 using System.Data;
-using back_stock.Interfaces;
-using back_stock.Models;
+using stock_api.Interfaces;
+using stock_api.Models;
 
-namespace back_stock.Repositories.Dapper;
+namespace stock_api.Repositories.Dapper;
 
 public class DapperWarehouseRepository : IWarehouseRepository
 {
@@ -27,6 +27,11 @@ public class DapperWarehouseRepository : IWarehouseRepository
         var sql = "SELECT * FROM mast_warehouse WHERE ID = @Id";
         return await _connection.QueryFirstOrDefaultAsync<MastWarehouse>(sql, new { Id = id }, transaction: _transaction);
     }
+    public async Task<MastWarehouse?> GetByCodeAsync(object code)
+    {
+        var sql = "SELECT * FROM mast_warehouse WHERE Code = @Code";
+        return await _connection.QueryFirstOrDefaultAsync<MastWarehouse>(sql, new { Code = code }, transaction: _transaction);
+    }
 
     public async Task<IEnumerable<MastWarehouse>> GetActiveWarehousesAsync()
     {
@@ -36,19 +41,19 @@ public class DapperWarehouseRepository : IWarehouseRepository
 
     public async Task AddAsync(MastWarehouse entity)
     {
-        var sql = @"INSERT INTO ""MastWarehouses"" (""WarehouseName"", ""IsActive"") VALUES (@WarehouseName, @IsActive)";
+        var sql = @"INSERT INTO Mast_Warehouse (id, Code, Warehouse_Name, Description, Create_By, Update_By, Update_Date) VALUES (@id, @Code, @WarehouseName, @Description, @CreateBy, @UpdateBy, @UpdateDate)";
         await _connection.ExecuteAsync(sql, entity, transaction: _transaction);
     }
 
     public void Update(MastWarehouse entity)
     {
-        var sql = @"UPDATE ""MastWarehouses"" SET ""WarehouseName"" = @WarehouseName, ""IsActive"" = @IsActive WHERE ""WarehouseId"" = @WarehouseId";
+        var sql = @"UPDATE MastWarehouses SET WarehouseName = @WarehouseName, IsActive = @IsActive WHERE WarehouseId = @WarehouseId";
         _connection.Execute(sql, entity, transaction: _transaction);
     }
 
     public void Remove(MastWarehouse entity)
     {
-        var sql = @"DELETE FROM ""MastBrands"" WHERE ""BrandId"" = @BrandId";
+        var sql = @"DELETE FROM MastBrands WHERE BrandId = @BrandId";
         _connection.Execute(sql, entity, transaction: _transaction);
     }
 }

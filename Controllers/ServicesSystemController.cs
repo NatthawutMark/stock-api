@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace back_stock.Controllers;
+namespace stock_api.Controllers;
 
 [ApiController]
-[Route("[controller]")]
-public class testSystemController : ControllerBase
+[Route("api/[controller]")]
+public class ServicesSystemController : ControllerBase
 {
 
     [HttpGet("getId",Name = "GetGUIDList")]
@@ -17,7 +17,5 @@ public class testSystemController : ControllerBase
             listGuid.Add(guid.ToString().ToUpper().Replace("-", ""));
         }
         return listGuid.ToList();
-    }
-
-    
+    }    
 }

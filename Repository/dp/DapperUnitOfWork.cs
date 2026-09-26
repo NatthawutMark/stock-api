@@ -1,7 +1,7 @@
 using System.Data;
-using back_stock.Interfaces;
+using stock_api.Interfaces;
 
-namespace back_stock.Repositories.Dapper;
+namespace stock_api.Repositories.Dapper;
 
 public class DapperUnitOfWork : IUnitOfWork
 {
@@ -10,7 +10,9 @@ public class DapperUnitOfWork : IUnitOfWork
 
     public IBrandRepository Brands { get; private set; }
     public IWarehouseRepository Warehouses { get; private set; }
-    public DapperUnitOfWork(IDbConnection context)
+    public ISystemMenuRepository SystemMenus { get; private set; }
+    public IAuthRepository Auths { get; private set; }
+    public DapperUnitOfWork(IDbConnection context, ISystemService systemService)
     {
         _connection = context;
         _connection.Open();
@@ -18,6 +20,8 @@ public class DapperUnitOfWork : IUnitOfWork
 
         Brands = new DapperBrandRepository(_connection, _transaction);
         Warehouses = new DapperWarehouseRepository(_connection, _transaction);
+        SystemMenus = new DapperSystemMenuRepository(_connection, _transaction);
+        Auths = new DapperAuthRepository(_connection, _transaction);
     }
 
     public async Task<int> CompleteAsync()

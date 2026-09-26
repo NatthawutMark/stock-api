@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace back_stock.Models;
+namespace stock_api.Models;
 
 public partial class MastItemGroup
 {

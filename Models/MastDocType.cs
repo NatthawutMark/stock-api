@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace back_stock.Models;
+namespace stock_api.Models;
 
 public partial class MastDocType
 {
@@ -22,6 +22,8 @@ public partial class MastDocType
     public DateTime? UpdateDate { get; set; }
 
     public string? UpdateBy { get; set; }
+
+    public virtual ICollection<DocTran> DocTrans { get; set; } = new List<DocTran>();
 
     public virtual MastTransType TransType { get; set; } = null!;
 }

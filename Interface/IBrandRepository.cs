@@ -1,6 +1,6 @@
-using back_stock.Models;
+using stock_api.Models;
 
-namespace back_stock.Interfaces;
+namespace stock_api.Interfaces;
 
 public interface IBrandRepository : IGenericRepository<MastBrand>
 {

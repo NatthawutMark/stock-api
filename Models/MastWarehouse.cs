@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace back_stock.Models;
+namespace stock_api.Models;
 
 public partial class MastWarehouse
 {
@@ -24,6 +24,12 @@ public partial class MastWarehouse
     public DateTime? UpdateDate { get; set; }
 
     public string? UpdateBy { get; set; }
+
+    public virtual ICollection<DocTran> DocTrans { get; set; } = new List<DocTran>();
+
+    public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
+
+    public virtual ICollection<InventoryDamage> InventoryDamages { get; set; } = new List<InventoryDamage>();
 
     public virtual ICollection<MastItemWarehouse> MastItemWarehouses { get; set; } = new List<MastItemWarehouse>();
 }

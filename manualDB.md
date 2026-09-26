@@ -36,7 +36,7 @@ dotnet tool install dotnet-ef
 ```bash
 dotnet tool run dotnet-ef dbcontext scaffold "Server=localhost;port=5432;Database=Stock_Management;User Id=sa;Password=P@ssP@STGRESQLw0rd;" Npgsql.EntityFrameworkCore.PostgreSQL -o Models -c DbContexts --force
 ``````
-dotnet ef dbcontext scaffold "Server=localhost;port=5432;Database=Stock_Management;User Id=sa;Password=P@ssP@STGRESQLw0rd;" Npgsql.EntityFrameworkCore.PostgreSQL -o Models -c DbContexts --force
+dotnet ef dbcontext scaffold "Server=localhost;port=5432;Database=Stock_Management;User Id=postgres;Password=P@ssP@STGRESQLw0rd;" Npgsql.EntityFrameworkCore.PostgreSQL -o Models -c DbContexts --force
 ```
 
 **คำอธิบายคำสั่ง:**
@@ -52,7 +52,7 @@ dotnet ef dbcontext scaffold "Server=localhost;port=5432;Database=Stock_Manageme
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
-using back_stock.Models; // เปลี่ยน namespace ให้ตรงกับโปรเจกต์ของคุณ
+using stock_api.Models; // เปลี่ยน namespace ให้ตรงกับโปรเจกต์ของคุณ
 
 // เชื่อมต่อฐานข้อมูล
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

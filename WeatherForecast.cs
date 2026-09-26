@@ -1,4 +1,4 @@
-namespace back_stock;
+namespace stock_api;
 
 public class WeatherForecast
 {

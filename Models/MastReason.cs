@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace back_stock.Models;
+namespace stock_api.Models;
 
 public partial class MastReason
 {
@@ -20,4 +20,8 @@ public partial class MastReason
     public DateTime? UpdateDate { get; set; }
 
     public string? UpdateBy { get; set; }
+
+    public virtual ICollection<DocReturnDetail> DocReturnDetails { get; set; } = new List<DocReturnDetail>();
+
+    public virtual ICollection<InventoryDamage> InventoryDamages { get; set; } = new List<InventoryDamage>();
 }

@@ -1,13 +1,15 @@
-using back_stock.Interfaces;
-using back_stock.Models;
+using stock_api.Interfaces;
+using stock_api.Models;
 
-namespace back_stock.Repositories.EF;
+namespace stock_api.Repositories.EF;
 
 public class EfUnitOfWork : IUnitOfWork
 {
     private readonly DbContexts _context;
     public IBrandRepository Brands { get; private set; }
     public IWarehouseRepository Warehouses { get; private set; }
+    public ISystemMenuRepository SystemMenus { get; private set; }
+    public IAuthRepository Auths { get; private set; }
 
     public EfUnitOfWork(DbContexts context)
     {
