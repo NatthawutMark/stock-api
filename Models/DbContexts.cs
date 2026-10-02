@@ -77,7 +77,7 @@ public partial class DbContexts : DbContext
 
     public virtual DbSet<MastWarehouse> MastWarehouses { get; set; }
 
-    public virtual DbSet<Refreshtoken> Refreshtokens { get; set; } = null!;
+    public virtual DbSet<Refreshtoken> Refreshtokens { get; set; }
 
     public virtual DbSet<SysMenu> SysMenus { get; set; }
 
@@ -1701,10 +1701,13 @@ public partial class DbContexts : DbContext
 
         modelBuilder.Entity<Refreshtoken>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("refreshtoken");
+            entity.HasKey(e => e.Id).HasName("refreshtoken_pk");
 
+            entity.ToTable("refreshtoken");
+
+            entity.Property(e => e.Id)
+                .HasColumnType("character varying")
+                .HasColumnName("id");
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
@@ -1712,9 +1715,6 @@ public partial class DbContexts : DbContext
             entity.Property(e => e.ExpiryDate)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("expiry_date");
-            entity.Property(e => e.Id)
-                .HasColumnType("character varying")
-                .HasColumnName("id");
             entity.Property(e => e.IsRevoked).HasColumnName("is_revoked");
             entity.Property(e => e.ReplacedToken)
                 .HasColumnType("character varying")
@@ -1729,7 +1729,7 @@ public partial class DbContexts : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("user_id");
 
-            entity.HasOne(d => d.User).WithMany()
+            entity.HasOne(d => d.User).WithMany(p => p.Refreshtokens)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("token_user_id_fk");
         });
@@ -1784,9 +1784,7 @@ public partial class DbContexts : DbContext
 
             entity.ToTable("sys_menu_user");
 
-            entity.HasIndex(e => e.MenuId, "sys_menu_user_menuid_unique").IsUnique();
-
-            entity.HasIndex(e => e.UserId, "sys_menu_user_userid_unique").IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.MenuId }, "sys_menu_user_unique").IsUnique();
 
             entity.Property(e => e.Id)
                 .HasColumnType("character varying")
@@ -1818,12 +1816,12 @@ public partial class DbContexts : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("user_id");
 
-            entity.HasOne(d => d.Menu).WithOne(p => p.SysMenuUser)
-                .HasForeignKey<SysMenuUser>(d => d.MenuId)
+            entity.HasOne(d => d.Menu).WithMany(p => p.SysMenuUsers)
+                .HasForeignKey(d => d.MenuId)
                 .HasConstraintName("sys_menu_user_menuid_fk");
 
-            entity.HasOne(d => d.User).WithOne(p => p.SysMenuUser)
-                .HasForeignKey<SysMenuUser>(d => d.UserId)
+            entity.HasOne(d => d.User).WithMany(p => p.SysMenuUsers)
+                .HasForeignKey(d => d.UserId)
                 .HasConstraintName("sys_menu_user_userid_fk");
         });
 

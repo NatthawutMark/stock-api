@@ -5,10 +5,12 @@ using System.Data;
 using stock_api.Repositories.Dapper;
 using stock_api.Request;
 using stock_api.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace stock_api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class MastWarehouseController : ControllerBase
 {
@@ -54,7 +56,7 @@ public class MastWarehouseController : ControllerBase
 
             await _dpUnitOfWork.Warehouses.AddAsync(mastWarehouse);
             await _dpUnitOfWork.CompleteAsync();
-            return StatusCode(201, new { status = true, data = mastWarehouse, message = "MastWarehouse created successfully" });
+            return StatusCode(201, new { success = true, data = mastWarehouse, message = "MastWarehouse created successfully" });
         }
         catch (Exception ex)
         {

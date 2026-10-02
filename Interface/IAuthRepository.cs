@@ -7,6 +7,8 @@ namespace stock_api.Interfaces;
 public interface IAuthRepository
 {
     Task<userLogin?> LoginAsync(ExpandoObject login);
+    Task<userLogin?> GetUserByIdAsync(string userId);
 
-    Task<roles?> GetRole(string userid);
+    Task<roles?> GetListRole(string userid);
+    Task<IEnumerable<Menus>> GetMenuByUserId(string userid);
 }

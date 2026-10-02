@@ -29,5 +29,5 @@ public partial class SysMenu
 
     public virtual SysMenu? Parent { get; set; }
 
-    public virtual SysMenuUser? SysMenuUser { get; set; }
+    public virtual ICollection<SysMenuUser> SysMenuUsers { get; set; } = new List<SysMenuUser>();
 }

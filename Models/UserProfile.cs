@@ -29,7 +29,9 @@ public partial class UserProfile
 
     public string? UpdateBy { get; set; }
 
-    public virtual SysMenuUser? SysMenuUser { get; set; }
+    public virtual ICollection<Refreshtoken> Refreshtokens { get; set; } = new List<Refreshtoken>();
+
+    public virtual ICollection<SysMenuUser> SysMenuUsers { get; set; } = new List<SysMenuUser>();
 
     public virtual ICollection<SysRoleUser> SysRoleUsers { get; set; } = new List<SysRoleUser>();
 
