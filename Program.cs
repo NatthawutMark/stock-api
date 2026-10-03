@@ -17,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// builder.Services.AddSwaggerGen();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -56,8 +56,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
+}).AddJwtBearer(options =>
 {
     options.SaveToken = true;
     options.RequireHttpsMetadata = false; // ตั้ง false ไว้ก่อนสำหรับตอนรันเทสบน localhost (ถ้าขึ้น Production ค่อยแก้เป็น true)
@@ -71,19 +70,17 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true, // ตรวจสอบลายเซ็น (Secret Key)
 
         // ดึงค่ามาจาก appsettings.json
-        ValidIssuer = builder.Configuration["JwtSettings:Issuer"], 
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
         ValidAudience = builder.Configuration["JwtSettings:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!))
 
-        // ValidateIssuerSigningKey = true,
-        // IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"])),
-        // ValidateIssuer = false, // ปิดชั่วคราว
-        // ValidateAudience = false, // ปิดชั่วคราว
-        // ValidateLifetime = true,
-        // ClockSkew = TimeSpan.Zero
     };
 });
-
+// builder.Services.AddSwaggerGen(options =>
+// {
+//     // บังคับให้ Swagger ใช้ชื่อเต็มของ Class เช่น "stock_api.Request.MastWarehouseRequest+reqFields"
+//     options.CustomSchemaIds(type => type.FullName);
+// });
 
 var app = builder.Build();
 app.UseRouting();
@@ -93,12 +90,12 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference(); // เพิ่มบรรทัดนี้
-    app.UseSwagger();
-    app.UseSwaggerUI(options => // UseSwaggerUI is called only in Development.
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-        options.RoutePrefix = string.Empty;
-    });
+    // app.UseSwagger();
+    // app.UseSwaggerUI(options => // UseSwaggerUI is called only in Development.
+    // {
+    //     options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+    //     options.RoutePrefix = string.Empty;
+    // });
 }
 app.UseCors("AllowFrontend");
 

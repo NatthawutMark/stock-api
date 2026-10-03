@@ -2,7 +2,7 @@ namespace stock_api.Interfaces;
 
 public interface IUnitOfWork : IDisposable
 {
-    IBrandRepository Brands { get; }
+    // IBrandRepository Brands { get; }
     IWarehouseRepository Warehouses { get; }
     ISystemMenuRepository SystemMenus { get; }
     IAuthRepository Auths { get; }

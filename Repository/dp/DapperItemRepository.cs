@@ -4,8 +4,8 @@ using stock_api.Interfaces;
 using stock_api.Models;
 using stock_api.dbo;
 using System.ComponentModel;
-using static stock_api.Request.MastItemRequest;
-using static stock_api.dbo.ItemDbo;
+using static stock_api.Request.MasterRequest;
+using static stock_api.response.MasterResponse;
 
 namespace stock_api.Repositories.Dapper;
 
@@ -20,7 +20,7 @@ public class DapperItemRepository : IItemRepository
         _transaction = transaction;
     }
 
-    public async Task<List<ItemList>> GetAll(reqFields obj)
+    public async Task<List<MastItemList>> GetAll(MastItemRequest req)
     {
         try
         {
@@ -42,7 +42,7 @@ public class DapperItemRepository : IItemRepository
                     inner join mast_location ml on i.location_id = ml.id
                     inner join mast_uom mu on i.uom_id = mu.id
                     where i.is_active = @isActive and i.is_delete = @isDelete";
-            var result = await _connection.QueryAsync<ItemList>(sql, obj, transaction: _transaction);
+            var result = await _connection.QueryAsync<MastItemList>(sql, req, transaction: _transaction);
             return result.ToList();
         }
         catch (Exception ex)

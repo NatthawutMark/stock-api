@@ -1,9 +1,7 @@
 using stock_api.Models;
 using Microsoft.AspNetCore.Mvc;
-using Dapper;
 using System.Data;
 using stock_api.Repositories.Dapper;
-using stock_api.Request;
 using stock_api.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using static stock_api.Request.MasterRequest;
@@ -14,7 +12,7 @@ namespace stock_api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
-public class MastItemController : ControllerBase
+public class MastBrandController : ControllerBase
 {
     private readonly DbContexts _context;
     private readonly IDbConnection _dbConnection;
@@ -22,7 +20,7 @@ public class MastItemController : ControllerBase
     private readonly ISystemService _systemService;
 
 
-    public MastItemController(DbContexts context, IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastBrandController(DbContexts context, IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
     {
         _context = context;
         _dbConnection = dbConnection;
@@ -30,17 +28,17 @@ public class MastItemController : ControllerBase
         _systemService = systemService;
     }
 
-    [HttpPost("list", Name = "ListMastItem")]
-    public async Task<ActionResult> Get(MastItemRequest req)
+    [HttpPost("list", Name = "ListMastBrand")]
+    public async Task<ActionResult<List<MastBrand>>> Get(MastBrandRequest req)
     {
         try
         {
             req.isActive = true;
             req.isDelete = false;
 
-            List<MastItemList> res = await _dpUnitOfWork.Items.GetAll(req);
+            List<MastBrandList> res = await _dpUnitOfWork.Brands.list(req);
 
-            return StatusCode(200, new { success = true, results = res.ToList(), message = "", error = "" });
+            return StatusCode(200, new { success = true, results = res, message = "", error = "" });
         }
         catch (Exception ex)
         {
