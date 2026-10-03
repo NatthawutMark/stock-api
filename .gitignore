@@ -56,4 +56,4 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 
-repomix-output.xml
+repomix-output-*.xml
