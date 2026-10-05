@@ -13,6 +13,7 @@ public class DapperUnitOfWork : IUnitOfWork
     public ISystemMenuRepository SystemMenus { get; private set; }
     public IAuthRepository Auths { get; private set; }
     public IItemRepository Items { get; private set; }
+    public ILocationRepository Locations { get; private set; }
     public DapperUnitOfWork(IDbConnection context, ISystemService systemService)
     {
         _connection = context;
@@ -24,6 +25,7 @@ public class DapperUnitOfWork : IUnitOfWork
         SystemMenus = new DapperSystemMenuRepository(_connection, _transaction);
         Auths = new DapperAuthRepository(_connection, _transaction);
         Items = new DapperItemRepository(_connection, _transaction);
+        Locations = new DapperLocationRepository(_connection, _transaction);
     }
 
     public async Task<int> CompleteAsync()

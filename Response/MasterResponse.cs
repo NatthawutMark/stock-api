@@ -4,7 +4,8 @@ namespace stock_api.response;
 
 public class MasterResponse
 {
-    public class MastItemList
+    #region MastItem
+    public class MastItemResponse
     {
         public string? id { get; set; }
         public string? itemCode { get; set; }
@@ -20,12 +21,25 @@ public class MasterResponse
         public bool? isSerialNo { get; set; }
         public bool? isActive { get; set; }
     }
+    #endregion
 
-    public class MastBrandList
+    #region MastBrand
+    public class MastBrandResponse
     {
         public string? id { get; set; }
         public string? nameTh { get; set; }
         public string? nameEn { get; set; }
         public bool? isActive { get; set; }
     }
+    #endregion
+
+    #region MastLocation
+    public class MastLocationResponse
+    {
+        public string? id { get; set; }
+        public string? code { get; set; }
+        public string? name { get; set; }
+        public bool? isActive { get; set; }
+    }
+    #endregion
 }

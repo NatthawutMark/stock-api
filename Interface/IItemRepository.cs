@@ -7,5 +7,5 @@ namespace stock_api.Interfaces;
 
 public interface IItemRepository
 {
-    Task<List<MastItemList>> GetAll(MastItemRequest req);
+    Task<List<MastItemResponse>> GetAll(MastItemRequest req);
 }

@@ -30,4 +30,25 @@ public class MasterRequest
         public string? UpdateDate { get; set; }
     }
 
+    public class MastLocationRequest
+    {
+        public string? id { get; set; }
+        public string? code { get; set; }
+        public string? name { get; set; }
+        public bool? isActive { get; set; }
+        public bool? isDelete { get; set; }
+        public string? createBy { get; set; }
+        public string? createDate { get; set; }
+        public string? UpdateBy { get; set; }
+        public string? UpdateDate { get; set; }
+    }
+
+    public class MastWarehouseRequest
+    {
+        public string Code { get; set; }
+        public string WarehouseName { get; set; }
+        public string? description { get; set; }
+        public string? createBy { get; set; }
+        public string? UpdateBy { get; set; }
+    }
 }

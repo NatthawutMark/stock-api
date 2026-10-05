@@ -20,7 +20,7 @@ public class DapperItemRepository : IItemRepository
         _transaction = transaction;
     }
 
-    public async Task<List<MastItemList>> GetAll(MastItemRequest req)
+    public async Task<List<MastItemResponse>> GetAll(MastItemRequest req)
     {
         try
         {
@@ -42,7 +42,7 @@ public class DapperItemRepository : IItemRepository
                     inner join mast_location ml on i.location_id = ml.id
                     inner join mast_uom mu on i.uom_id = mu.id
                     where i.is_active = @isActive and i.is_delete = @isDelete";
-            var result = await _connection.QueryAsync<MastItemList>(sql, req, transaction: _transaction);
+            var result = await _connection.QueryAsync<MastItemResponse>(sql, req, transaction: _transaction);
             return result.ToList();
         }
         catch (Exception ex)

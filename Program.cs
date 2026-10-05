@@ -24,6 +24,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<DapperUnitOfWork>();
 builder.Services.AddScoped<EfUnitOfWork>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ISystemService, SystemService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddHostedService<TokenCleanupService>();

@@ -38,7 +38,7 @@ public class MastItemController : ControllerBase
             req.isActive = true;
             req.isDelete = false;
 
-            List<MastItemList> res = await _dpUnitOfWork.Items.GetAll(req);
+            List<MastItemResponse> res = await _dpUnitOfWork.Items.GetAll(req);
 
             return StatusCode(200, new { success = true, results = res.ToList(), message = "", error = "" });
         }

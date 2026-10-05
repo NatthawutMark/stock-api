@@ -10,9 +10,9 @@ using static stock_api.response.MasterResponse;
 namespace stock_api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize] 
 [Route("api/[controller]")]
-public class MastBrandController : ControllerBase
+public class MastLocationController : ControllerBase
 {
     private readonly DbContexts _context;
     private readonly IDbConnection _dbConnection;
@@ -20,7 +20,7 @@ public class MastBrandController : ControllerBase
     private readonly ISystemService _systemService;
 
 
-    public MastBrandController(DbContexts context, IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastLocationController(DbContexts context, IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
     {
         _context = context;
         _dbConnection = dbConnection;
@@ -28,15 +28,15 @@ public class MastBrandController : ControllerBase
         _systemService = systemService;
     }
 
-    [HttpPost("list", Name = "ListMastBrand")]
-    public async Task<ActionResult<List<MastBrand>>> Get(MastBrandRequest req)
+    [HttpPost("list", Name = "ListMastLocation")]
+    public async Task<ActionResult<List<MastLocationResponse>>> Get(MastLocationRequest req)
     {
         try
         {
             req.isActive = true;
             req.isDelete = false;
 
-            List<MastBrandResponse> res = await _dpUnitOfWork.Brands.list(req);
+            List<MastLocationResponse> res = await _dpUnitOfWork.Locations.list(req);
 
             return StatusCode(200, new { success = true, results = res, message = "", error = "" });
         }
@@ -46,8 +46,8 @@ public class MastBrandController : ControllerBase
         }
     }
 
-    [HttpPost("create", Name = "CreateMastBrand")]
-    public async Task<ActionResult> Create([FromBody] MastBrandRequest req)
+    [HttpPost("create", Name = "CreateMastLocation")]
+    public async Task<ActionResult> Create([FromBody] MastLocationRequest req)
     {
         try
         {
@@ -56,71 +56,72 @@ public class MastBrandController : ControllerBase
                 return BadRequest(new { status = false, message = "Invalid request data" });
             }
 
-            if (string.IsNullOrEmpty(req.nameTh) && string.IsNullOrEmpty(req.nameEn))
+            if (string.IsNullOrEmpty(req.code))
             {
-                return return200(false, null, "No data To Create", "NameTh and NameEn is empty");
+                return return200(false, null, "No data To Create", "Code and Name is empty");
             }
 
-            MastBrandResponse? checkDuplicate = await _dpUnitOfWork.Brands.GetByName(true, req.nameTh);
+            MastLocationResponse? checkDuplicate = await _dpUnitOfWork.Locations.GetByCode(true, req.code);
             if (checkDuplicate != null)
             {
-                return return200(false, null, "Duplicate Data", "NameTh is already exists");
+                return return200(false, null, "Duplicate Data", "Code is already exists");
             }
+            string userId = _systemService.GetUserId();
 
             req.id = _systemService.GenGUID();
-            req.createBy = _systemService.GetUserId();
-            req.UpdateBy = _systemService.GetUserId();
+            req.createBy = userId;
+            req.UpdateBy = userId;
 
-            var result = await _dpUnitOfWork.Brands.create(req);
+            var result = await _dpUnitOfWork.Locations.create(req);
             if (result is OkObjectResult okResult)
             {
                 await _dpUnitOfWork.CompleteAsync();
-                return return200(true, null, "Create MastBrand Success", "");
+                return return200(true, null, "Create MastLocation Success", "");
             }
             else if (result is BadRequestObjectResult badRequestResult)
             {
                 _dpUnitOfWork.Dispose();
-                return return200(false, null, "Create MastBrand Failed", badRequestResult.Value?.ToString() ?? "");
+                return return200(false, null, "Create MastLocation Failed", badRequestResult.Value?.ToString() ?? "");
             }
             else
             {
                 _dpUnitOfWork.Dispose();
-                return return200(false, null, "Create MastBrand Failed", "Unknown error occurred");
+                return return200(false, null, "Create MastLocation Failed", "Unknown error occurred");
             }
         }
         catch (Exception ex)
         {
             _dpUnitOfWork.Dispose();
-            return StatusCode(500, new { status = false, message = "An error occurred while creating the MastBrand", error = ex.Message });
+            return StatusCode(500, new { status = false, message = "An error occurred while creating the MastLocation", error = ex.Message });
         }
     }
 
 
-    [HttpGet("getByName", Name = "GetMastBrandByName")]
-    public async Task<ActionResult> GetByName([FromQuery] string name)
+    [HttpGet("getByCode", Name = "GetMastLocationByCode")]
+    public async Task<ActionResult> GetByCode([FromQuery] string code)
     {
         try
         {
-            if (string.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(code))
             {
                 return BadRequest(new { status = false, message = "Invalid request data" });
             }
 
-            MastBrandResponse? res = await _dpUnitOfWork.Brands.GetByName(false, name);
+            MastLocationResponse? res = await _dpUnitOfWork.Locations.GetByCode(false, code);
             if (res != null)
             {
-                return return200(true, res, "Get MastBrand Success", "");
+                return return200(true, res, "Get MastLocation Success", "");
             }
             else
             {
-                return return200(false, null, "MastBrand Not Found", "");
+                return return200(false, null, "MastLocation Not Found", "");
             }
 
         }
         catch (Exception ex)
         {
             _dpUnitOfWork.Dispose();
-            return StatusCode(500, new { status = false, message = "An error occurred while creating the MastBrand", error = ex.Message });
+            return StatusCode(500, new { status = false, message = "An error occurred while creating the MastLocation", error = ex.Message });
         }
     }
 

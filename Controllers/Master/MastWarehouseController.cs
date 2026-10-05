@@ -6,6 +6,7 @@ using stock_api.Repositories.Dapper;
 using stock_api.Request;
 using stock_api.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using static stock_api.Request.MasterRequest;
 
 namespace stock_api.Controllers;
 
@@ -27,7 +28,7 @@ public class MastWarehouseController : ControllerBase
     }
 
     [HttpPost("create", Name = "CreatMastWarehouse")]
-    public async Task<ActionResult> Create([FromBody] MastWarehouseRequest.reqFields req)
+    public async Task<ActionResult> Create([FromBody] MastWarehouseRequest req)
     {
         try
         {
