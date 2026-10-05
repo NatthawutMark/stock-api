@@ -1,9 +1,8 @@
-using stock_api.Models;
+using stock_api.Request;
 
 namespace stock_api.Interfaces;
 
-public interface ISystemMenuRepository : IGenericRepository<SysMenu>
+public interface ISystemMenuRepository : IGenericRepository<SystemMenuRequest>
 {
-    // Task<IEnumerable<SysMenu>> GetActiveMenusAsync();
-    Task<SysMenu?> GetByCodeAsync(object code);
+    Task<SystemMenuRequest?> GetByCodeAsync(object code);
 }

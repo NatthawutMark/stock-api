@@ -1,4 +1,4 @@
-using stock_api.Models;
+
 using Microsoft.AspNetCore.Mvc;
 using Dapper;
 using System.Data;
@@ -16,9 +16,9 @@ namespace stock_api.Controllers;
 public class MastWarehouseController : ControllerBase
 {
     private readonly IDbConnection _dbConnection;
-    private readonly DapperUnitOfWork _dpUnitOfWork;
+    private readonly UnitOfWork _dpUnitOfWork;
     private readonly ISystemService _systemService;
-    public MastWarehouseController(IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastWarehouseController(IDbConnection dbConnection, UnitOfWork dpUnitOfWork, ISystemService systemService)
     {
         _dbConnection = dbConnection;
         _dpUnitOfWork = dpUnitOfWork;
@@ -42,15 +42,14 @@ public class MastWarehouseController : ControllerBase
                 return Conflict(new { status = false, message = "Warehouse code already exists" });
             }
 
-            var mastWarehouse = new MastWarehouse
+            var mastWarehouse = new MastWarehouseRequest
             {
-                Id = _systemService.GenGUID(),
+                id = _systemService.GenGUID(),
                 Code = req.Code,
                 WarehouseName = req.WarehouseName,
-                Description = req.description ?? null,
-                CreateBy = req.createBy ?? null,
+                description = req.description ?? null,
+                createBy = req.createBy ?? null,
                 UpdateBy = req.UpdateBy ?? null,
-                UpdateDate = DateTime.Now,
             };
 
             await _dpUnitOfWork.Warehouses.AddAsync(mastWarehouse);
@@ -64,7 +63,7 @@ public class MastWarehouseController : ControllerBase
         }
     }
 
-    [HttpGet("getAll", Name = "GETAllMastWarehouse")]
+    [HttpGet("list", Name = "GetAllMastWarehouse")]
     public async Task<ActionResult> Get()
     {
         var mastWarehouses = await _dpUnitOfWork.Warehouses.GetAllAsync();

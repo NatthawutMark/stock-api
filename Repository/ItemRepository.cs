@@ -1,7 +1,7 @@
 using Dapper;
 using System.Data;
 using stock_api.Interfaces;
-using stock_api.Models;
+
 using stock_api.dbo;
 using System.ComponentModel;
 using static stock_api.Request.MasterRequest;
@@ -9,12 +9,12 @@ using static stock_api.response.MasterResponse;
 
 namespace stock_api.Repositories.Dapper;
 
-public class DapperItemRepository : IItemRepository
+public class ItemRepository : IItemRepository
 {
     private readonly IDbConnection _connection;
     private readonly IDbTransaction? _transaction;
 
-    public DapperItemRepository(IDbConnection connection, IDbTransaction? transaction)
+    public ItemRepository(IDbConnection connection, IDbTransaction? transaction)
     {
         _connection = connection;
         _transaction = transaction;

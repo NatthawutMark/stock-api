@@ -42,12 +42,23 @@ public class MasterResponse
         public bool? isActive { get; set; }
     }
     #endregion
+
     #region MastGroup
     public class MastGroupResponse
     {
         public string? id { get; set; }
         public string? code { get; set; }
         public string? name { get; set; }
+        public bool? isActive { get; set; }
+    }
+    #endregion
+
+    #region MastGroup
+    public class MastWarehouseResponse
+    {
+        public string? id { get; set; }
+        public string? code { get; set; }
+        public string? warehouseName { get; set; }
         public bool? isActive { get; set; }
     }
     #endregion

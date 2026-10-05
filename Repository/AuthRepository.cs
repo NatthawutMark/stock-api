@@ -3,16 +3,17 @@ using System.Data;
 using stock_api.Interfaces;
 using static stock_api.Response.AuthRes;
 using System.Dynamic;
-using stock_api.Models;
+using static stock_api.Request.AuthRequest;
+
 
 namespace stock_api.Repositories.Dapper;
 
-public class DapperAuthRepository : IAuthRepository
+public class AuthRepository : IAuthRepository
 {
     private readonly IDbConnection _connection;
     private readonly IDbTransaction? _transaction;
 
-    public DapperAuthRepository(IDbConnection connection, IDbTransaction? transaction = null)
+    public AuthRepository(IDbConnection connection, IDbTransaction? transaction = null)
     {
         _connection = connection;
         _transaction = transaction;
@@ -79,7 +80,7 @@ public class DapperAuthRepository : IAuthRepository
         }
     }
     #region Refresh Token
-    public async Task<int> AddRefreshTokenAsync(Refreshtoken token)
+    public async Task<int> AddRefreshTokenAsync(RefreshtokenRequest token)
     {
         var sql = @"INSERT INTO refreshtoken (id, user_id, token, expiry_date, is_revoked, create_date)
                     VALUES (@Id, @UserId, @Token, @ExpiryDate, @IsRevoked, @CreateDate)";
@@ -87,7 +88,7 @@ public class DapperAuthRepository : IAuthRepository
         return await _connection.ExecuteAsync(sql, token, transaction: _transaction);
     }
 
-    public async Task<Refreshtoken?> GetRefreshTokenAsync(string token)
+    public async Task<RefreshtokenResponse?> GetRefreshTokenAsync(string token)
     {
         var sql = @"SELECT id            AS Id,
                            user_id       AS UserId,
@@ -100,7 +101,7 @@ public class DapperAuthRepository : IAuthRepository
                     FROM refreshtoken
                     WHERE token = @token";
 
-        return await _connection.QueryFirstOrDefaultAsync<Refreshtoken>(sql, new { token }, transaction: _transaction);
+        return await _connection.QueryFirstOrDefaultAsync<RefreshtokenResponse>(sql, new { token }, transaction: _transaction);
     }
 
     /// <summary>ยกเลิก Token ใบเดียว (ใช้ตอน Rotation) พร้อมเก็บว่าถูกแทนที่ด้วย Token ใบไหน</summary>

@@ -1,4 +1,4 @@
-using stock_api.Models;
+
 using Microsoft.AspNetCore.Mvc;
 using Dapper;
 using System.Data;
@@ -17,11 +17,11 @@ namespace stock_api.Controllers;
 public class MastItemController : ControllerBase
 {
     private readonly IDbConnection _dbConnection;
-    private readonly DapperUnitOfWork _dpUnitOfWork;
+    private readonly UnitOfWork _dpUnitOfWork;
     private readonly ISystemService _systemService;
 
 
-    public MastItemController(IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastItemController(IDbConnection dbConnection, UnitOfWork dpUnitOfWork, ISystemService systemService)
     {
         _dbConnection = dbConnection;
         _dpUnitOfWork = dpUnitOfWork;

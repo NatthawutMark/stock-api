@@ -4,7 +4,7 @@ using stock_api.Repositories.Dapper;
 using static stock_api.Request.AuthRequest;
 using System.Dynamic;
 using static stock_api.Response.AuthRes;
-using stock_api.Models;
+
 
 namespace stock_api.Controllers;
 
@@ -15,13 +15,13 @@ public class AuthController : ControllerBase
     public bool _status = true;
     public string _message = string.Empty;
     public string _error = string.Empty;
-    private readonly DapperUnitOfWork _dpUnitOfWork;
+    private readonly UnitOfWork _dpUnitOfWork;
     private readonly IJwtService _jwtService;
     private readonly ISystemService _systemService;
     private readonly IConfiguration _config;
 
 
-    public AuthController(DapperUnitOfWork dpUnitOfWork, ISystemService systemService, IJwtService jwtService, IConfiguration config)
+    public AuthController(UnitOfWork dpUnitOfWork, ISystemService systemService, IJwtService jwtService, IConfiguration config)
     {
         _dpUnitOfWork = dpUnitOfWork;
         _systemService = systemService;
@@ -35,7 +35,7 @@ public class AuthController : ControllerBase
         try
         {
             loginResponse response = new loginResponse();
-            Refreshtoken refreshToken = new Refreshtoken();
+            RefreshtokenRequest refreshToken = new RefreshtokenRequest();
             dynamic reqLogin = new ExpandoObject();
             string AccessToken = string.Empty;
             string RefreshToken = string.Empty;
@@ -104,7 +104,7 @@ public class AuthController : ControllerBase
                 var accessToken = _jwtService.GenerateAccessToken(userId, resUser.username, resRole?.roleEn ?? string.Empty);
                 var refreshTokenValue = _jwtService.GenerateRefreshToken();
 
-                refreshToken = new Refreshtoken
+                refreshToken = new RefreshtokenRequest
                 {
                     Id = _systemService.GenGUID(),
                     UserId = userId,
@@ -167,7 +167,7 @@ public class AuthController : ControllerBase
 
             var expirationDate = double.Parse(_config["JwtSettings:RefreshTokenExpirationDays"] ?? "3");
 
-            var newRefreshToken = new Refreshtoken
+            var newRefreshToken = new RefreshtokenRequest
             {
                 Id = _systemService.GenGUID(),
                 UserId = storedToken.UserId,

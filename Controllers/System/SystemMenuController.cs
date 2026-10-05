@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using stock_api.Interfaces;
-using stock_api.Models;
+
 using stock_api.Repositories.Dapper;
 using stock_api.Request;
 using stock_api.Services;
+using static stock_api.Request.SystemMenuRequest;
 
 namespace stock_api.Controllers;
 
@@ -12,17 +13,17 @@ namespace stock_api.Controllers;
 public class SystemMenuController : ControllerBase
 {
 
-    private readonly DapperUnitOfWork _dpUnitOfWork;
+    private readonly UnitOfWork _dpUnitOfWork;
     private readonly ISystemService _systemService;
 
-    public SystemMenuController(DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
+    public SystemMenuController(UnitOfWork dpUnitOfWork, ISystemService systemService)
     {
         _dpUnitOfWork = dpUnitOfWork;
         _systemService = systemService;
     }
 
     [HttpPost("addMenu", Name = "AddMenu")]
-    public async Task<ActionResult> AddMenu([FromBody] SystemMenuRequest.reqFields menu)
+    public async Task<ActionResult> AddMenu([FromBody] SystemMenuRequest menu)
     {
         try
         {
@@ -31,13 +32,13 @@ public class SystemMenuController : ControllerBase
                 return StatusCode(200, new { message = "Invalid menu data" });
             }
 
-            var newMenu = new SysMenu
+            var newMenu = new SystemMenuRequest
             {
                 Id = _systemService.GenGUID(),
-                ParentId = menu.parentId ?? null,
-                NameTh = menu.nameTh,
-                NameEn = menu.nameEN ?? null,
-                CreateBy = menu.createBy,
+                ParentId = menu.ParentId ?? null,
+                NameTh = menu.NameTh,
+                NameEn = menu.NameEn ?? null,
+                CreateBy = menu.CreateBy,
                 UpdateBy = menu.UpdateBy,
                 UpdateDate = DateTime.Now
             };

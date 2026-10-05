@@ -1,4 +1,4 @@
-using stock_api.Models;
+
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
 using stock_api.Repositories.Dapper;
@@ -15,11 +15,11 @@ namespace stock_api.Controllers;
 public class MastBrandController : ControllerBase
 {
     private readonly IDbConnection _dbConnection;
-    private readonly DapperUnitOfWork _dpUnitOfWork;
+    private readonly UnitOfWork _dpUnitOfWork;
     private readonly ISystemService _systemService;
 
 
-    public MastBrandController(IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastBrandController(IDbConnection dbConnection, UnitOfWork dpUnitOfWork, ISystemService systemService)
     {
         _dbConnection = dbConnection;
         _dpUnitOfWork = dpUnitOfWork;
@@ -27,7 +27,7 @@ public class MastBrandController : ControllerBase
     }
 
     [HttpPost("list", Name = "ListMastBrand")]
-    public async Task<ActionResult<List<MastBrand>>> Get(MastBrandRequest req)
+    public async Task<ActionResult<List<MastBrandResponse>>> Get(MastBrandRequest req)
     {
         try
         {

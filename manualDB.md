@@ -52,7 +52,7 @@ dotnet ef dbcontext scaffold "Server=localhost;port=5432;Database=Stock_Manageme
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
-using stock_api.Models; // เปลี่ยน namespace ให้ตรงกับโปรเจกต์ของคุณ
+ // เปลี่ยน namespace ให้ตรงกับโปรเจกต์ของคุณ
 
 // เชื่อมต่อฐานข้อมูล
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

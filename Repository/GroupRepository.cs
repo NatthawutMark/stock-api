@@ -1,38 +1,38 @@
 using Dapper;
 using System.Data;
 using stock_api.Interfaces;
-using stock_api.Models;
+
 using static stock_api.Request.MasterRequest;
 using static stock_api.response.MasterResponse;
 using Microsoft.AspNetCore.Mvc;
 
 namespace stock_api.Repositories.Dapper;
 
-public class DapperLocationRepository : ILocationRepository
+public class GroupRepository : IGroupRepository
 {
     private readonly IDbConnection _connection;
     private readonly IDbTransaction? _transaction;
 
-    public DapperLocationRepository(IDbConnection connection, IDbTransaction? transaction)
+    public GroupRepository(IDbConnection connection, IDbTransaction? transaction)
     {
         _connection = connection;
         _transaction = transaction;
     }
 
-    public async Task<List<MastLocationResponse>> list(MastLocationRequest req)
+    public async Task<List<MastGroupResponse>> list(MastGroupRequest req)
     {
-        var sql = @"SELECT * FROM mast_location WHERE is_active = @isActive AND is_delete = @isDelete";
-        return (await _connection.QueryAsync<MastLocationResponse>(sql, req, transaction: _transaction)).ToList();
+        var sql = @"SELECT * FROM mast_group WHERE is_active = @isActive AND is_delete = @isDelete";
+        return (await _connection.QueryAsync<MastGroupResponse>(sql, req, transaction: _transaction)).ToList();
     }
 
-    public async Task<ActionResult> create(MastLocationRequest req)
+    public async Task<ActionResult> create(MastGroupRequest req)
     {
         try
         {
-            var sql = @"INSERT INTO mast_location(id, code, name, create_by, update_by) VALUES (@id, @code, @name, @createBy, @UpdateBy)";
+            var sql = @"INSERT INTO mast_group(id, name_th, name_en, create_by, update_by) VALUES (@id, @nameTh, @nameEn, @createBy, @UpdateBy)";
             return await _connection.ExecuteAsync(sql, req, transaction: _transaction) > 0
-                ? new OkObjectResult(new { success = true, results = "", message = "Create MastLocation Success", error = "" })
-                : new BadRequestObjectResult(new { success = false, results = "", message = "Create MastLocation Failed", error = "" });
+                ? new OkObjectResult(new { success = true, results = "", message = "Create MastGroup Success", error = "" })
+                : new BadRequestObjectResult(new { success = false, results = "", message = "Create MastGroup Failed", error = "" });
 
         }
         catch (Exception ex)
@@ -41,15 +41,15 @@ public class DapperLocationRepository : ILocationRepository
         }
     }
 
-    public async Task<MastLocationResponse?> GetByCode(bool check, string code)
+    public async Task<MastGroupResponse?> GetByName(bool check, string nameTh)
     {
         var sql = "";
         if (check == true)
-            sql = "SELECT * FROM mast_location WHERE code = @code AND is_active = true AND is_delete = false";
+            sql = "SELECT * FROM mast_group WHERE name_th = @nameTh AND is_active = true AND is_delete = false";
         else
-            sql = "SELECT * FROM mast_location WHERE (code like @code) AND is_active = true AND is_delete = false";
+            sql = "SELECT * FROM mast_group WHERE (name_th like @nameTh or name_en like @nameTh) AND is_active = true AND is_delete = false";
 
-        return await _connection.QueryFirstOrDefaultAsync<MastLocationResponse>(sql, new { code = check ? code.Trim() : $"%{code.Trim()}%" }, transaction: _transaction);
+        return await _connection.QueryFirstOrDefaultAsync<MastGroupResponse>(sql, new { nameTh = check ? nameTh.Trim() : $"%{nameTh.Trim()}%" }, transaction: _transaction);
     }
 
     // public async Task<MastBrand?> GetByIdAsync(object id)

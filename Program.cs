@@ -1,10 +1,8 @@
 using Scalar.AspNetCore;
-using Microsoft.EntityFrameworkCore;
-using stock_api.Models;
+
 using System.Data;
 using Npgsql;
 using stock_api.Repositories.Dapper;
-using stock_api.Repositories.EF;
 using stock_api.Interfaces;
 using stock_api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -22,16 +20,11 @@ builder.Services.AddEndpointsApiExplorer();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddScoped<DapperUnitOfWork>();
-builder.Services.AddScoped<EfUnitOfWork>();
+builder.Services.AddScoped<UnitOfWork>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ISystemService, SystemService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddHostedService<TokenCleanupService>();
-
-// Register the Database Context
-builder.Services.AddDbContext<DbContexts>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ลงทะเบียน IDbConnection แบบ Scoped
 #region ServicesDapper

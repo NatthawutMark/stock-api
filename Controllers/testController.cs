@@ -8,9 +8,9 @@ namespace stock_api.Controllers;
 [Route("api/[controller]")]
 public class testController : ControllerBase
 {
-    private readonly DapperUnitOfWork _dpUnitOfwork;
+    private readonly UnitOfWork _dpUnitOfwork;
 
-    public testController(DapperUnitOfWork unitOfWork)
+    public testController(UnitOfWork unitOfWork)
     {
         _dpUnitOfwork = unitOfWork;
     }

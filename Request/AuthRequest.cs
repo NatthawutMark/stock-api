@@ -10,6 +10,16 @@ public static class AuthRequest
         public string password { get; set; }
     }
 
+    public class RefreshtokenRequest
+    {
+        public string Id { get; set; } = null!;
+        public string UserId { get; set; } = null!;
+        public string Token { get; set; } = null!;
+        public DateTime ExpiryDate { get; set; }
+        public bool IsRevoked { get; set; }
+        public DateTime CreateDate { get; set; }
+    }
+
     public class RefreshRequest
     {
         public string RefreshToken { get; set; } = null!;

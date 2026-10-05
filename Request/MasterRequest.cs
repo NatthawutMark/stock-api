@@ -42,6 +42,7 @@ public class MasterRequest
     }
     public class MastWarehouseRequest
     {
+        public string? id { get; set; }
         public string Code { get; set; }
         public string WarehouseName { get; set; }
         public string? description { get; set; }

@@ -24,7 +24,7 @@ public class TokenCleanupService : BackgroundService
                 using (var scope = _serviceProvider.CreateScope())
                 {
                     var connection = scope.ServiceProvider.GetRequiredService<IDbConnection>();
-                    var authRepository = new DapperAuthRepository(connection);
+                    var authRepository = new AuthRepository(connection);
 
                     var deleted = await authRepository.DeleteExpiredRefreshTokensAsync(revokedOlderThanDays: 3);
                     _logger.LogInformation("TokenCleanupService: deleted {Count} expired refresh tokens", deleted);
