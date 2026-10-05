@@ -18,7 +18,7 @@ public class DapperWarehouseRepository : IWarehouseRepository
 
     public async Task<IEnumerable<MastWarehouse>> GetAllAsync()
     {
-        var sql = "SELECT * FROM MastWarehouses";
+        var sql = "SELECT * FROM mast_warehouse";
         return await _connection.QueryAsync<MastWarehouse>(sql, transaction: _transaction);
     }
 

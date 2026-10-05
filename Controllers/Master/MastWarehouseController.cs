@@ -15,13 +15,11 @@ namespace stock_api.Controllers;
 [Route("api/[controller]")]
 public class MastWarehouseController : ControllerBase
 {
-    private readonly DbContexts _context;
     private readonly IDbConnection _dbConnection;
     private readonly DapperUnitOfWork _dpUnitOfWork;
     private readonly ISystemService _systemService;
-    public MastWarehouseController(DbContexts context, IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastWarehouseController(IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
     {
-        _context = context;
         _dbConnection = dbConnection;
         _dpUnitOfWork = dpUnitOfWork;
         _systemService = systemService;
@@ -67,10 +65,10 @@ public class MastWarehouseController : ControllerBase
     }
 
     [HttpGet("getAll", Name = "GETAllMastWarehouse")]
-    public ActionResult<List<MastWarehouse>> Get()
+    public async Task<ActionResult> Get()
     {
-        var mastWarehouses = _context.MastWarehouses.ToList();
-        return mastWarehouses;
+        var mastWarehouses = await _dpUnitOfWork.Warehouses.GetAllAsync();
+        return StatusCode(200, mastWarehouses);
     }
 
     [HttpGet("{id}", Name = "GETMastWarehouse")]

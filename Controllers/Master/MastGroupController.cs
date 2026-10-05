@@ -10,31 +10,31 @@ using static stock_api.response.MasterResponse;
 namespace stock_api.Controllers;
 
 [ApiController]
-[Authorize] 
+// [Authorize]
 [Route("api/[controller]")]
-public class MastLocationController : ControllerBase
+public class MastGroupController : ControllerBase
 {
     private readonly IDbConnection _dbConnection;
     private readonly DapperUnitOfWork _dpUnitOfWork;
     private readonly ISystemService _systemService;
 
 
-    public MastLocationController(IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastGroupController(IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
     {
         _dbConnection = dbConnection;
         _dpUnitOfWork = dpUnitOfWork;
         _systemService = systemService;
     }
 
-    [HttpPost("list", Name = "ListMastLocation")]
-    public async Task<ActionResult<List<MastLocationResponse>>> Get(MastLocationRequest req)
+    [HttpPost("list", Name = "ListMastGroup")]
+    public async Task<ActionResult<List<MastGroupResponse>>> Get(MastGroupRequest req)
     {
         try
         {
             req.isActive = true;
             req.isDelete = false;
-
-            List<MastLocationResponse> res = await _dpUnitOfWork.Locations.list(req);
+            
+            List<MastGroupResponse> res = await _dpUnitOfWork.Groups.list(req);
 
             return StatusCode(200, new { success = true, results = res, message = "", error = "" });
         }
@@ -44,8 +44,8 @@ public class MastLocationController : ControllerBase
         }
     }
 
-    [HttpPost("create", Name = "CreateMastLocation")]
-    public async Task<ActionResult> Create([FromBody] MastLocationRequest req)
+    [HttpPost("create", Name = "CreateMastGroup")]
+    public async Task<ActionResult> Create([FromBody] MastGroupRequest req)
     {
         try
         {
@@ -54,15 +54,15 @@ public class MastLocationController : ControllerBase
                 return BadRequest(new { status = false, message = "Invalid request data" });
             }
 
-            if (string.IsNullOrEmpty(req.code))
+            if (string.IsNullOrEmpty(req.nameTh) && string.IsNullOrEmpty(req.nameEn))
             {
-                return return200(false, null, "No data To Create", "Code and Name is empty");
+                return return200(false, null, "No data To Create", "Name is empty");
             }
 
-            MastLocationResponse? checkDuplicate = await _dpUnitOfWork.Locations.GetByCode(true, req.code);
+            MastGroupResponse? checkDuplicate = await _dpUnitOfWork.Groups.GetByName(true, req.nameTh);
             if (checkDuplicate != null)
             {
-                return return200(false, null, "Duplicate Data", "Code is already exists");
+                return return200(false, null, "Duplicate Data", "Name is already exists");
             }
             string userId = _systemService.GetUserId();
 
@@ -70,56 +70,56 @@ public class MastLocationController : ControllerBase
             req.createBy = userId;
             req.UpdateBy = userId;
 
-            var result = await _dpUnitOfWork.Locations.create(req);
+            var result = await _dpUnitOfWork.Groups.create(req);
             if (result is OkObjectResult okResult)
             {
                 await _dpUnitOfWork.CompleteAsync();
-                return return200(true, null, "Create MastLocation Success", "");
+                return return200(true, null, "Create MastGroup Success", "");
             }
             else if (result is BadRequestObjectResult badRequestResult)
             {
                 _dpUnitOfWork.Dispose();
-                return return200(false, null, "Create MastLocation Failed", badRequestResult.Value?.ToString() ?? "");
+                return return200(false, null, "Create MastGroup Failed", badRequestResult.Value?.ToString() ?? "");
             }
             else
             {
                 _dpUnitOfWork.Dispose();
-                return return200(false, null, "Create MastLocation Failed", "Unknown error occurred");
+                return return200(false, null, "Create MastGroup Failed", "Unknown error occurred");
             }
         }
         catch (Exception ex)
         {
             _dpUnitOfWork.Dispose();
-            return StatusCode(500, new { status = false, message = "An error occurred while creating the MastLocation", error = ex.Message });
+            return StatusCode(500, new { status = false, message = "An error occurred while creating the MastGroup", error = ex.Message });
         }
     }
 
 
-    [HttpGet("getByCode", Name = "GetMastLocationByCode")]
-    public async Task<ActionResult> GetByCode([FromQuery] string code)
+    [HttpGet("getByName", Name = "GetMastGroupByName")]
+    public async Task<ActionResult> GetByName([FromQuery] string name)
     {
         try
         {
-            if (string.IsNullOrEmpty(code))
+            if (string.IsNullOrEmpty(name))
             {
                 return BadRequest(new { status = false, message = "Invalid request data" });
             }
 
-            MastLocationResponse? res = await _dpUnitOfWork.Locations.GetByCode(false, code);
+            MastGroupResponse? res = await _dpUnitOfWork.Groups.GetByName(false, name);
             if (res != null)
             {
-                return return200(true, res, "Get MastLocation Success", "");
+                return return200(true, res, "Get MastGroup Success", "");
             }
             else
             {
-                return return200(false, null, "MastLocation Not Found", "");
+                return return200(false, null, "MastGroup Not Found", "");
             }
 
         }
         catch (Exception ex)
         {
             _dpUnitOfWork.Dispose();
-            return StatusCode(500, new { status = false, message = "An error occurred while creating the MastLocation", error = ex.Message });
+            return StatusCode(500, new { status = false, message = "An error occurred while fetching the MastGroup", error = ex.Message });
         }
     }
 

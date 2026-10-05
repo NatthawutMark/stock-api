@@ -5,7 +5,6 @@ using static stock_api.Request.AuthRequest;
 using System.Dynamic;
 using static stock_api.Response.AuthRes;
 using stock_api.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace stock_api.Controllers;
 
@@ -19,13 +18,11 @@ public class AuthController : ControllerBase
     private readonly DapperUnitOfWork _dpUnitOfWork;
     private readonly IJwtService _jwtService;
     private readonly ISystemService _systemService;
-    private readonly DbContexts _dbContexts;
     private readonly IConfiguration _config;
 
 
-    public AuthController(DbContexts dbContexts, DapperUnitOfWork dpUnitOfWork, ISystemService systemService, IJwtService jwtService, IConfiguration config)
+    public AuthController(DapperUnitOfWork dpUnitOfWork, ISystemService systemService, IJwtService jwtService, IConfiguration config)
     {
-        _dbContexts = dbContexts;
         _dpUnitOfWork = dpUnitOfWork;
         _systemService = systemService;
         _jwtService = jwtService;
@@ -113,10 +110,11 @@ public class AuthController : ControllerBase
                     UserId = userId,
                     Token = refreshTokenValue,
                     ExpiryDate = DateTime.Now.AddDays(expirationMinutes),
-                    IsRevoked = false
+                    IsRevoked = false,
+                    CreateDate = DateTime.Now
                 };
-                _dbContexts.Refreshtokens.Add(refreshToken);
-                await _dbContexts.SaveChangesAsync();
+                await _dpUnitOfWork.Auths.AddRefreshTokenAsync(refreshToken);
+                await _dpUnitOfWork.CompleteAsync(); // Commit transaction
 
                 AccessToken = accessToken;
                 RefreshToken = refreshTokenValue;
@@ -127,19 +125,19 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _dbContexts.Dispose();
+            _dpUnitOfWork.Dispose();
             return StatusCode(200, new { status = false, message = ex.Message, error = ex.InnerException?.Message });
         }
     }
 
     [HttpPost("refresh")]
-    public async Task<IActionResult> Refresh([FromBody] RefreshRequestDto request)
+    public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
     {
         try
         {
-            var storedToken = await _dbContexts.Refreshtokens.FirstOrDefaultAsync(t => t.Token == request.RefreshToken);
+            var storedToken = await _dpUnitOfWork.Auths.GetRefreshTokenAsync(request.RefreshToken);
 
-            if (storedToken == null)
+            if (storedToken == null || string.IsNullOrEmpty(storedToken.UserId))
             {
                 return Unauthorized(new { message = "Token ไม่ถูกต้อง" });
             }
@@ -147,17 +145,8 @@ public class AuthController : ControllerBase
             // [REUSE DETECTION] ถ้า Token นี้ถูกยกเลิกไปแล้ว แต่ยังมีคนนำกลับมาใช้ แสดงว่าโดนแฮก!
             if (storedToken.IsRevoked)
             {
-                var userTokens = await _dbContexts.Refreshtokens
-                    .Where(t => t.UserId == storedToken.UserId && !t.IsRevoked)
-                    .ToListAsync();
-
-                foreach (var token in userTokens)
-                {
-                    token.IsRevoked = true;
-                    token.RevokedDate = DateTime.Now;
-                }
-
-                await _dbContexts.SaveChangesAsync();
+                await _dpUnitOfWork.Auths.RevokeAllRefreshTokensByUserAsync(storedToken.UserId);
+                await _dpUnitOfWork.CompleteAsync(); // Commit transaction
                 return Unauthorized(new { message = "พบความเสี่ยงด้านความปลอดภัย กรุณาเข้าสู่ระบบใหม่" });
             }
 
@@ -168,31 +157,28 @@ public class AuthController : ControllerBase
             }
 
             var resRole = await _dpUnitOfWork.Auths.GetListRole(storedToken.UserId);
-            // [ROTATION PROCESS] ยกเลิก Token ใบเก่า
             var newRefreshTokenValue = _jwtService.GenerateRefreshToken();
 
-            storedToken.IsRevoked = true;
-            storedToken.RevokedDate = DateTime.Now;
-            storedToken.ReplacedToken = newRefreshTokenValue;
+            // [ROTATION PROCESS] ยกเลิก Token ใบเก่า
+            await _dpUnitOfWork.Auths.RevokeRefreshTokenAsync(request.RefreshToken, newRefreshTokenValue);
 
             // ออก Token ใบใหม่
-            var newAccessToken = _jwtService.GenerateAccessToken(storedToken.UserId, "admin", resRole?.roleEn);
+            var newAccessToken = _jwtService.GenerateAccessToken(storedToken.UserId, "admin", resRole?.roleEn ?? string.Empty);
 
-            var expirationMinutes = double.Parse(_config["JwtSettings:RefreshTokenExpirationDays"] ?? "3");
-            // var accessToken = _jwtService.GenerateAccessToken(userId, resUser.username, resRole?.roleEn ?? string.Empty);
-            var refreshTokenValue = _jwtService.GenerateRefreshToken();
+            var expirationDate = double.Parse(_config["JwtSettings:RefreshTokenExpirationDays"] ?? "3");
 
             var newRefreshToken = new Refreshtoken
             {
                 Id = _systemService.GenGUID(),
                 UserId = storedToken.UserId,
                 Token = newRefreshTokenValue,
-                ExpiryDate = DateTime.Now.AddDays(expirationMinutes),
-                IsRevoked = false
+                ExpiryDate = DateTime.Now.AddDays(expirationDate),
+                IsRevoked = false,
+                CreateDate = DateTime.Now
             };
 
-            _dbContexts.Refreshtokens.Add(newRefreshToken);
-            await _dbContexts.SaveChangesAsync();
+            await _dpUnitOfWork.Auths.AddRefreshTokenAsync(newRefreshToken);
+            await _dpUnitOfWork.CompleteAsync(); // Commit ทั้งการยกเลิกใบเก่าและเพิ่มใบใหม่พร้อมกัน
 
             return Ok(new AuthResponseDto
             {
@@ -202,6 +188,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
+            _dpUnitOfWork.Dispose();
             return StatusCode(500, new { message = "เกิดข้อผิดพลาดในการรีเฟรชโทเค็น", error = ex.Message });
         }
     }

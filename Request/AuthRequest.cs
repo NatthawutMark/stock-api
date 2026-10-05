@@ -10,7 +10,7 @@ public static class AuthRequest
         public string password { get; set; }
     }
 
-    public class RefreshRequestDto
+    public class RefreshRequest
     {
         public string RefreshToken { get; set; } = null!;
     }

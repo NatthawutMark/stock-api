@@ -10,7 +10,7 @@ public class EfUnitOfWork : IUnitOfWork
     public ISystemMenuRepository SystemMenus { get; private set; }
     public IAuthRepository Auths { get; private set; }
     public IItemRepository Items { get; private set; }
-
+    public IGroupRepository Groups { get; private set; }
     public EfUnitOfWork(DbContexts context)
     {
         _context = context;

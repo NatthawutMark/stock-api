@@ -14,15 +14,13 @@ namespace stock_api.Controllers;
 [Route("api/[controller]")]
 public class MastBrandController : ControllerBase
 {
-    private readonly DbContexts _context;
     private readonly IDbConnection _dbConnection;
     private readonly DapperUnitOfWork _dpUnitOfWork;
     private readonly ISystemService _systemService;
 
 
-    public MastBrandController(DbContexts context, IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastBrandController(IDbConnection dbConnection, DapperUnitOfWork dpUnitOfWork, ISystemService systemService)
     {
-        _context = context;
         _dbConnection = dbConnection;
         _dpUnitOfWork = dpUnitOfWork;
         _systemService = systemService;
