@@ -15,22 +15,22 @@ public class AuthController : ControllerBase
     public bool _status = true;
     public string _message = string.Empty;
     public string _error = string.Empty;
-    private readonly UnitOfWork _dpUnitOfWork;
+    private readonly UnitOfWork _unitOfWork;
     private readonly IJwtService _jwtService;
     private readonly ISystemService _systemService;
     private readonly IConfiguration _config;
 
 
-    public AuthController(UnitOfWork dpUnitOfWork, ISystemService systemService, IJwtService jwtService, IConfiguration config)
+    public AuthController(UnitOfWork unitOfWork, ISystemService systemService, IJwtService jwtService, IConfiguration config)
     {
-        _dpUnitOfWork = dpUnitOfWork;
+        _unitOfWork = unitOfWork;
         _systemService = systemService;
         _jwtService = jwtService;
         _config = config;
     }
 
     [HttpPost("login", Name = "Login")]
-    public async Task<ActionResult> Login([FromBody] login req)
+    public async Task<ActionResult> Login([FromBody] loginRequest req)
     {
         try
         {
@@ -44,10 +44,7 @@ public class AuthController : ControllerBase
                 return StatusCode(200, new { message = "Invalid login data" });
             }
 
-            reqLogin.username = req.username;
-            reqLogin.password = req.password;
-
-            var resUser = await _dpUnitOfWork.Auths.LoginAsync(reqLogin);
+            var resUser = await _unitOfWork.Auths.LoginAsync(req);
 
             if (resUser == null)
             {
@@ -62,9 +59,9 @@ public class AuthController : ControllerBase
 
                 string userId = resUser.userid;
 
-                var resRole = await _dpUnitOfWork.Auths.GetListRole(userId);
+                var resRole = await _unitOfWork.Auths.GetListRole(userId);
                 #region Set Menus
-                var resMenus = await _dpUnitOfWork.Auths.GetMenuByUserId(userId);
+                var resMenus = await _unitOfWork.Auths.GetMenuByUserId(userId);
                 var menuLookup = resMenus.ToLookup(m => m.parentID);
 
                 List<Menus>? BuildMenuTree(string? currentParentId)
@@ -113,8 +110,8 @@ public class AuthController : ControllerBase
                     IsRevoked = false,
                     CreateDate = DateTime.Now
                 };
-                await _dpUnitOfWork.Auths.AddRefreshTokenAsync(refreshToken);
-                await _dpUnitOfWork.CompleteAsync(); // Commit transaction
+                await _unitOfWork.Auths.AddRefreshTokenAsync(refreshToken);
+                await _unitOfWork.CompleteAsync(); // Commit transaction
 
                 AccessToken = accessToken;
                 RefreshToken = refreshTokenValue;
@@ -125,7 +122,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _dpUnitOfWork.Dispose();
+            _unitOfWork.Dispose();
             return StatusCode(200, new { status = false, message = ex.Message, error = ex.InnerException?.Message });
         }
     }
@@ -135,7 +132,7 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var storedToken = await _dpUnitOfWork.Auths.GetRefreshTokenAsync(request.RefreshToken);
+            var storedToken = await _unitOfWork.Auths.GetRefreshTokenAsync(request.RefreshToken);
 
             if (storedToken == null || string.IsNullOrEmpty(storedToken.UserId))
             {
@@ -145,8 +142,8 @@ public class AuthController : ControllerBase
             // [REUSE DETECTION] ถ้า Token นี้ถูกยกเลิกไปแล้ว แต่ยังมีคนนำกลับมาใช้ แสดงว่าโดนแฮก!
             if (storedToken.IsRevoked)
             {
-                await _dpUnitOfWork.Auths.RevokeAllRefreshTokensByUserAsync(storedToken.UserId);
-                await _dpUnitOfWork.CompleteAsync(); // Commit transaction
+                await _unitOfWork.Auths.RevokeAllRefreshTokensByUserAsync(storedToken.UserId);
+                await _unitOfWork.CompleteAsync(); // Commit transaction
                 return Unauthorized(new { message = "พบความเสี่ยงด้านความปลอดภัย กรุณาเข้าสู่ระบบใหม่" });
             }
 
@@ -156,11 +153,11 @@ public class AuthController : ControllerBase
                 return Unauthorized(new { message = "Refresh Token หมดอายุแล้ว" });
             }
 
-            var resRole = await _dpUnitOfWork.Auths.GetListRole(storedToken.UserId);
+            var resRole = await _unitOfWork.Auths.GetListRole(storedToken.UserId);
             var newRefreshTokenValue = _jwtService.GenerateRefreshToken();
 
             // [ROTATION PROCESS] ยกเลิก Token ใบเก่า
-            await _dpUnitOfWork.Auths.RevokeRefreshTokenAsync(request.RefreshToken, newRefreshTokenValue);
+            await _unitOfWork.Auths.RevokeRefreshTokenAsync(request.RefreshToken, newRefreshTokenValue);
 
             // ออก Token ใบใหม่
             var newAccessToken = _jwtService.GenerateAccessToken(storedToken.UserId, "admin", resRole?.roleEn ?? string.Empty);
@@ -177,8 +174,8 @@ public class AuthController : ControllerBase
                 CreateDate = DateTime.Now
             };
 
-            await _dpUnitOfWork.Auths.AddRefreshTokenAsync(newRefreshToken);
-            await _dpUnitOfWork.CompleteAsync(); // Commit ทั้งการยกเลิกใบเก่าและเพิ่มใบใหม่พร้อมกัน
+            await _unitOfWork.Auths.AddRefreshTokenAsync(newRefreshToken);
+            await _unitOfWork.CompleteAsync(); // Commit ทั้งการยกเลิกใบเก่าและเพิ่มใบใหม่พร้อมกัน
 
             return Ok(new AuthResponseDto
             {
@@ -188,7 +185,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _dpUnitOfWork.Dispose();
+            _unitOfWork.Dispose();
             return StatusCode(500, new { message = "เกิดข้อผิดพลาดในการรีเฟรชโทเค็น", error = ex.Message });
         }
     }

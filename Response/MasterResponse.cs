@@ -53,7 +53,7 @@ public class MasterResponse
     }
     #endregion
 
-    #region MastGroup
+    #region MastWarehouse
     public class MastWarehouseResponse
     {
         public string? id { get; set; }
@@ -62,4 +62,64 @@ public class MasterResponse
         public bool? isActive { get; set; }
     }
     #endregion
+
+    #region MastUom
+    public class MastUomResponse
+    {
+        public string? id { get; set; }
+        public string? name { get; set; }
+        public bool? isActive { get; set; }
+    }
+    #endregion
+
+    #region MastCustomer
+    public class MastCustomerResponse
+    {
+        public string? id { get; set; }
+        public string? custCode { get; set; }
+        public string? custName { get; set; }
+        public string? contactName { get; set; }
+        public string? tel { get; set; }
+        public string? address { get; set; }
+        public string? remark { get; set; }
+        public bool? isActive { get; set; }
+    }
+    #endregion
+
+    #region MastVendor
+    public class MastVendorResponse
+    {
+        public string? id { get; set; }
+        public string? vendCode { get; set; }
+        public string? vendName { get; set; }
+        public string? contactName { get; set; }
+        public string? tel { get; set; }
+        public string? address { get; set; }
+        public string? remark { get; set; }
+        public bool? isActive { get; set; }
+        public bool? isDelete { get; set; }
+    }
+    #endregion
+
+    #region MastTransType
+    public class MastTransTypeResponse
+    {
+        public string? id { get; set; }
+        public string? nameTh { get; set; }
+        public string? nameEn { get; set; }
+        public bool? isActive { get; set; }
+        public bool? isDelete { get; set; }
+    }
+    #endregion
+
+    #region MastReason
+    public class MastReasonResponse
+    {
+        public string? id { get; set; }
+        public string? name { get; set; }
+        public bool? isActive { get; set; }
+        public bool? isDelete { get; set; }
+    }
+    #endregion
+
 }

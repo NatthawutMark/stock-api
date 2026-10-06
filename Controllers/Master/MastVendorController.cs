@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
 using stock_api.Repositories.Dapper;
@@ -10,31 +9,31 @@ using static stock_api.response.MasterResponse;
 namespace stock_api.Controllers;
 
 [ApiController]
-[Authorize]
+// [Authorize]
 [Route("api/[controller]")]
-public class MastGroupController : ControllerBase
+public class MastVendorController : ControllerBase
 {
     private readonly IDbConnection _dbConnection;
     private readonly UnitOfWork _unitOfWork;
     private readonly ISystemService _systemService;
 
 
-    public MastGroupController(IDbConnection dbConnection, UnitOfWork unitOfWork, ISystemService systemService)
+    public MastVendorController(IDbConnection dbConnection, UnitOfWork unitOfWork, ISystemService systemService)
     {
         _dbConnection = dbConnection;
         _unitOfWork = unitOfWork;
         _systemService = systemService;
     }
 
-    [HttpPost("list", Name = "ListMastGroup")]
-    public async Task<ActionResult<List<MastGroupResponse>>> Get(MastGroupRequest req)
+    [HttpPost("list", Name = "ListMastVendor")]
+    public async Task<ActionResult<List<MastVendorResponse>>> Get(MastVendorRequest req)
     {
         try
         {
             req.isActive = true;
             req.isDelete = false;
-            
-            List<MastGroupResponse> res = await _unitOfWork.Groups.list(req);
+
+            List<MastVendorResponse> res = await _unitOfWork.Vendors.list(req);
 
             return StatusCode(200, new { success = true, results = res, message = "", error = "" });
         }
@@ -44,8 +43,8 @@ public class MastGroupController : ControllerBase
         }
     }
 
-    [HttpPost("create", Name = "CreateMastGroup")]
-    public async Task<ActionResult> Create([FromBody] MastGroupRequest req)
+    [HttpPost("create", Name = "CreateMastVendor")]
+    public async Task<ActionResult> Create([FromBody] MastVendorRequest req)
     {
         try
         {
@@ -54,15 +53,15 @@ public class MastGroupController : ControllerBase
                 return BadRequest(new { status = false, message = "Invalid request data" });
             }
 
-            if (string.IsNullOrEmpty(req.nameTh) && string.IsNullOrEmpty(req.nameEn))
+            if (string.IsNullOrEmpty(req.vendCode) && string.IsNullOrEmpty(req.vendName))
             {
-                return return200(false, null, "No data To Create", "Name is empty");
+                return return200(false, null, "No data To Create", "Vendor code or name is empty");
             }
 
-            MastGroupResponse? checkDuplicate = await _unitOfWork.Groups.GetByName(true, req.nameTh);
+            MastVendorResponse? checkDuplicate = await _unitOfWork.Vendors.GetByCode(true, req.vendCode);
             if (checkDuplicate != null)
             {
-                return return200(false, null, "Duplicate Data", "Name is already exists");
+                return return200(false, null, "Duplicate Data", "Vendor code is already exists");
             }
             string userId = _systemService.GetUserId();
 
@@ -70,56 +69,56 @@ public class MastGroupController : ControllerBase
             req.createBy = userId;
             req.UpdateBy = userId;
 
-            var result = await _unitOfWork.Groups.create(req);
+            var result = await _unitOfWork.Vendors.create(req);
             if (result is OkObjectResult okResult)
             {
                 await _unitOfWork.CompleteAsync();
-                return return200(true, null, "Create MastGroup Success", "");
+                return return200(true, null, "Create MastVendor Success", "");
             }
             else if (result is BadRequestObjectResult badRequestResult)
             {
                 _unitOfWork.Dispose();
-                return return200(false, null, "Create MastGroup Failed", badRequestResult.Value?.ToString() ?? "");
+                return return200(false, null, "Create MastVendor Failed", badRequestResult.Value?.ToString() ?? "");
             }
             else
             {
                 _unitOfWork.Dispose();
-                return return200(false, null, "Create MastGroup Failed", "Unknown error occurred");
+                return return200(false, null, "Create MastVendor Failed", "Unknown error occurred");
             }
         }
         catch (Exception ex)
         {
             _unitOfWork.Dispose();
-            return StatusCode(500, new { status = false, message = "An error occurred while creating the MastGroup", error = ex.Message });
+            return StatusCode(500, new { status = false, message = "An error occurred while creating the MastVendor", error = ex.Message });
         }
     }
 
 
-    [HttpGet("getByName", Name = "GetMastGroupByName")]
-    public async Task<ActionResult> GetByName([FromQuery] string name)
+    [HttpGet("getByCode", Name = "GetMastVendorByCode")]
+    public async Task<ActionResult> GetByCode([FromQuery] string Code)
     {
         try
         {
-            if (string.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(Code))
             {
                 return BadRequest(new { status = false, message = "Invalid request data" });
             }
 
-            MastGroupResponse? res = await _unitOfWork.Groups.GetByName(false, name);
+            MastVendorResponse? res = await _unitOfWork.Vendors.GetByCode(false, Code);
             if (res != null)
             {
-                return return200(true, res, "Get MastGroup Success", "");
+                return return200(true, res, "Get MastVendor Success", "");
             }
             else
             {
-                return return200(false, null, "MastGroup Not Found", "");
+                return return200(false, null, "MastVendor Not Found", "");
             }
 
         }
         catch (Exception ex)
         {
             _unitOfWork.Dispose();
-            return StatusCode(500, new { status = false, message = "An error occurred while fetching the MastGroup", error = ex.Message });
+            return StatusCode(500, new { status = false, message = "An error occurred while fetching the MastVendor", error = ex.Message });
         }
     }
 

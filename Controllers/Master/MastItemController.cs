@@ -17,14 +17,14 @@ namespace stock_api.Controllers;
 public class MastItemController : ControllerBase
 {
     private readonly IDbConnection _dbConnection;
-    private readonly UnitOfWork _dpUnitOfWork;
+    private readonly UnitOfWork _unitOfWork;
     private readonly ISystemService _systemService;
 
 
-    public MastItemController(IDbConnection dbConnection, UnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastItemController(IDbConnection dbConnection, UnitOfWork unitOfWork, ISystemService systemService)
     {
         _dbConnection = dbConnection;
-        _dpUnitOfWork = dpUnitOfWork;
+        _unitOfWork = unitOfWork;
         _systemService = systemService;
     }
 
@@ -36,7 +36,7 @@ public class MastItemController : ControllerBase
             req.isActive = true;
             req.isDelete = false;
 
-            List<MastItemResponse> res = await _dpUnitOfWork.Items.GetAll(req);
+            List<MastItemResponse> res = await _unitOfWork.Items.GetAll(req);
 
             return StatusCode(200, new { success = true, results = res.ToList(), message = "", error = "" });
         }
@@ -57,7 +57,7 @@ public class MastItemController : ControllerBase
     //         }
 
     //         // Check if the warehouse code already exists
-    //         var existingWarehouse = await _dpUnitOfWork.Warehouses.GetByCodeAsync(req.Code);
+    //         var existingWarehouse = await _unitOfWork.Warehouses.GetByCodeAsync(req.Code);
     //         if (existingWarehouse != null)
     //         {
     //             return Conflict(new { status = false, message = "Warehouse code already exists" });
@@ -74,13 +74,13 @@ public class MastItemController : ControllerBase
     //             UpdateDate = DateTime.Now,
     //         };
 
-    //         await _dpUnitOfWork.Warehouses.AddAsync(mastWarehouse);
-    //         await _dpUnitOfWork.CompleteAsync();
+    //         await _unitOfWork.Warehouses.AddAsync(mastWarehouse);
+    //         await _unitOfWork.CompleteAsync();
     //         return StatusCode(201, new { success = true, data = mastWarehouse, message = "MastWarehouse created successfully" });
     //     }
     //     catch (Exception ex)
     //     {
-    //         _dpUnitOfWork.Dispose();
+    //         _unitOfWork.Dispose();
     //         return StatusCode(500, new { status = false, message = "An error occurred while creating the MastWarehouse", error = ex.Message });
     //     }
     // }

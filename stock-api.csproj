@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>stock_api</RootNamespace>
-    <NoWarn>1591;CS8618;CS8600</NoWarn>
+    <NoWarn>1591;CS8618;CS8600;CS8625;CS8604</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

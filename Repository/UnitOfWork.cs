@@ -15,6 +15,11 @@ public class UnitOfWork : IUnitOfWork
     public IItemRepository Items { get; private set; }
     public ILocationRepository Locations { get; private set; }
     public IGroupRepository Groups { get; private set; }
+    public IUomRepository Uoms { get; private set; }
+    public ICustomerRepository Customers { get; private set; }
+    public IVendorRepository Vendors { get; private set; }
+    public ITransTypeRepository TransTypes { get; private set; }
+    public IReasonRepository Reasons { get; private set; }
     public UnitOfWork(IDbConnection context, ISystemService systemService)
     {
         _connection = context;
@@ -28,6 +33,11 @@ public class UnitOfWork : IUnitOfWork
         Items = new ItemRepository(_connection, _transaction);
         Locations = new LocationRepository(_connection, _transaction);
         Groups = new GroupRepository(_connection, _transaction);
+        Uoms = new UomRepository(_connection, _transaction);
+        Customers = new CustomerRepository(_connection, _transaction);
+        Vendors = new VendorRepository(_connection, _transaction);
+        TransTypes = new TransTypeRepository(_connection, _transaction);
+        Reasons = new ReasonRepository(_connection, _transaction);
     }
 
     public async Task<int> CompleteAsync()

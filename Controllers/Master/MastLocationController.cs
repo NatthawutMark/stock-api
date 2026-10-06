@@ -15,14 +15,14 @@ namespace stock_api.Controllers;
 public class MastLocationController : ControllerBase
 {
     private readonly IDbConnection _dbConnection;
-    private readonly UnitOfWork _dpUnitOfWork;
+    private readonly UnitOfWork _unitOfWork;
     private readonly ISystemService _systemService;
 
 
-    public MastLocationController(IDbConnection dbConnection, UnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastLocationController(IDbConnection dbConnection, UnitOfWork unitOfWork, ISystemService systemService)
     {
         _dbConnection = dbConnection;
-        _dpUnitOfWork = dpUnitOfWork;
+        _unitOfWork = unitOfWork;
         _systemService = systemService;
     }
 
@@ -34,7 +34,7 @@ public class MastLocationController : ControllerBase
             req.isActive = true;
             req.isDelete = false;
 
-            List<MastLocationResponse> res = await _dpUnitOfWork.Locations.list(req);
+            List<MastLocationResponse> res = await _unitOfWork.Locations.list(req);
 
             return StatusCode(200, new { success = true, results = res, message = "", error = "" });
         }
@@ -59,7 +59,7 @@ public class MastLocationController : ControllerBase
                 return return200(false, null, "No data To Create", "Code and Name is empty");
             }
 
-            MastLocationResponse? checkDuplicate = await _dpUnitOfWork.Locations.GetByCode(true, req.code);
+            MastLocationResponse? checkDuplicate = await _unitOfWork.Locations.GetByCode(true, req.code);
             if (checkDuplicate != null)
             {
                 return return200(false, null, "Duplicate Data", "Code is already exists");
@@ -70,26 +70,26 @@ public class MastLocationController : ControllerBase
             req.createBy = userId;
             req.UpdateBy = userId;
 
-            var result = await _dpUnitOfWork.Locations.create(req);
+            var result = await _unitOfWork.Locations.create(req);
             if (result is OkObjectResult okResult)
             {
-                await _dpUnitOfWork.CompleteAsync();
+                await _unitOfWork.CompleteAsync();
                 return return200(true, null, "Create MastLocation Success", "");
             }
             else if (result is BadRequestObjectResult badRequestResult)
             {
-                _dpUnitOfWork.Dispose();
+                _unitOfWork.Dispose();
                 return return200(false, null, "Create MastLocation Failed", badRequestResult.Value?.ToString() ?? "");
             }
             else
             {
-                _dpUnitOfWork.Dispose();
+                _unitOfWork.Dispose();
                 return return200(false, null, "Create MastLocation Failed", "Unknown error occurred");
             }
         }
         catch (Exception ex)
         {
-            _dpUnitOfWork.Dispose();
+            _unitOfWork.Dispose();
             return StatusCode(500, new { status = false, message = "An error occurred while creating the MastLocation", error = ex.Message });
         }
     }
@@ -105,7 +105,7 @@ public class MastLocationController : ControllerBase
                 return BadRequest(new { status = false, message = "Invalid request data" });
             }
 
-            MastLocationResponse? res = await _dpUnitOfWork.Locations.GetByCode(false, code);
+            MastLocationResponse? res = await _unitOfWork.Locations.GetByCode(false, code);
             if (res != null)
             {
                 return return200(true, res, "Get MastLocation Success", "");
@@ -118,7 +118,7 @@ public class MastLocationController : ControllerBase
         }
         catch (Exception ex)
         {
-            _dpUnitOfWork.Dispose();
+            _unitOfWork.Dispose();
             return StatusCode(500, new { status = false, message = "An error occurred while creating the MastLocation", error = ex.Message });
         }
     }

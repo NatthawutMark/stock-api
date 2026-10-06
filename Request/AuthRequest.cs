@@ -4,7 +4,7 @@ namespace stock_api.Request;
 
 public static class AuthRequest
 {
-    public class login
+    public class loginRequest
     {
         public string username { get; set; }
         public string password { get; set; }

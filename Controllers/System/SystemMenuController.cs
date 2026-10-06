@@ -13,12 +13,12 @@ namespace stock_api.Controllers;
 public class SystemMenuController : ControllerBase
 {
 
-    private readonly UnitOfWork _dpUnitOfWork;
+    private readonly UnitOfWork _unitOfWork;
     private readonly ISystemService _systemService;
 
-    public SystemMenuController(UnitOfWork dpUnitOfWork, ISystemService systemService)
+    public SystemMenuController(UnitOfWork unitOfWork, ISystemService systemService)
     {
-        _dpUnitOfWork = dpUnitOfWork;
+        _unitOfWork = unitOfWork;
         _systemService = systemService;
     }
 
@@ -43,8 +43,8 @@ public class SystemMenuController : ControllerBase
                 UpdateDate = DateTime.Now
             };
 
-            await _dpUnitOfWork.SystemMenus.AddAsync(newMenu);
-            await _dpUnitOfWork.CompleteAsync();
+            await _unitOfWork.SystemMenus.AddAsync(newMenu);
+            await _unitOfWork.CompleteAsync();
             return StatusCode(200, new { message = "Menu added successfully" });
         }
         catch (Exception ex)

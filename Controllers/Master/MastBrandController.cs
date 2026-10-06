@@ -15,14 +15,14 @@ namespace stock_api.Controllers;
 public class MastBrandController : ControllerBase
 {
     private readonly IDbConnection _dbConnection;
-    private readonly UnitOfWork _dpUnitOfWork;
+    private readonly UnitOfWork _unitOfWork;
     private readonly ISystemService _systemService;
 
 
-    public MastBrandController(IDbConnection dbConnection, UnitOfWork dpUnitOfWork, ISystemService systemService)
+    public MastBrandController(IDbConnection dbConnection, UnitOfWork unitOfWork, ISystemService systemService)
     {
         _dbConnection = dbConnection;
-        _dpUnitOfWork = dpUnitOfWork;
+        _unitOfWork = unitOfWork;
         _systemService = systemService;
     }
 
@@ -34,7 +34,7 @@ public class MastBrandController : ControllerBase
             req.isActive = true;
             req.isDelete = false;
 
-            List<MastBrandResponse> res = await _dpUnitOfWork.Brands.list(req);
+            List<MastBrandResponse> res = await _unitOfWork.Brands.list(req);
 
             return StatusCode(200, new { success = true, results = res, message = "", error = "" });
         }
@@ -59,7 +59,7 @@ public class MastBrandController : ControllerBase
                 return return200(false, null, "No data To Create", "NameTh and NameEn is empty");
             }
 
-            MastBrandResponse? checkDuplicate = await _dpUnitOfWork.Brands.GetByName(true, req.nameTh);
+            MastBrandResponse? checkDuplicate = await _unitOfWork.Brands.GetByName(true, req.nameTh);
             if (checkDuplicate != null)
             {
                 return return200(false, null, "Duplicate Data", "NameTh is already exists");
@@ -69,26 +69,26 @@ public class MastBrandController : ControllerBase
             req.createBy = _systemService.GetUserId();
             req.UpdateBy = _systemService.GetUserId();
 
-            var result = await _dpUnitOfWork.Brands.create(req);
+            var result = await _unitOfWork.Brands.create(req);
             if (result is OkObjectResult okResult)
             {
-                await _dpUnitOfWork.CompleteAsync();
+                await _unitOfWork.CompleteAsync();
                 return return200(true, null, "Create MastBrand Success", "");
             }
             else if (result is BadRequestObjectResult badRequestResult)
             {
-                _dpUnitOfWork.Dispose();
+                _unitOfWork.Dispose();
                 return return200(false, null, "Create MastBrand Failed", badRequestResult.Value?.ToString() ?? "");
             }
             else
             {
-                _dpUnitOfWork.Dispose();
+                _unitOfWork.Dispose();
                 return return200(false, null, "Create MastBrand Failed", "Unknown error occurred");
             }
         }
         catch (Exception ex)
         {
-            _dpUnitOfWork.Dispose();
+            _unitOfWork.Dispose();
             return StatusCode(500, new { status = false, message = "An error occurred while creating the MastBrand", error = ex.Message });
         }
     }
@@ -104,7 +104,7 @@ public class MastBrandController : ControllerBase
                 return BadRequest(new { status = false, message = "Invalid request data" });
             }
 
-            MastBrandResponse? res = await _dpUnitOfWork.Brands.GetByName(false, name);
+            MastBrandResponse? res = await _unitOfWork.Brands.GetByName(false, name);
             if (res != null)
             {
                 return return200(true, res, "Get MastBrand Success", "");
@@ -117,7 +117,7 @@ public class MastBrandController : ControllerBase
         }
         catch (Exception ex)
         {
-            _dpUnitOfWork.Dispose();
+            _unitOfWork.Dispose();
             return StatusCode(500, new { status = false, message = "An error occurred while creating the MastBrand", error = ex.Message });
         }
     }

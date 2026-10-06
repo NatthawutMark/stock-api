@@ -19,7 +19,7 @@ public class AuthRepository : IAuthRepository
         _transaction = transaction;
     }
 
-    public async Task<userLogin?> LoginAsync(ExpandoObject login)
+    public async Task<userLogin?> LoginAsync(loginRequest login)
     {
         var sql = @"SELECT ua.user_id AS userid,
                            ua.username,
