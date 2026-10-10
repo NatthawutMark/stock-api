@@ -50,6 +50,48 @@ public class VendorRepository : IVendorRepository
         }
     }
 
+    public async Task<ActionResult> update(MastVendorRequest req)
+    {
+        try
+        {
+            var sql = @"UPDATE mast_vendor 
+                        SET vend_code = COALESCE(@vendCode, vend_code),
+                            vend_name = @vendName, 
+                            contact_name = @contactName, 
+                            tel = @tel, 
+                            address = @address, 
+                            remark = @remark, 
+                            is_active = COALESCE(@isActive, is_active), 
+                            update_by = COALESCE(@UpdateBy, update_by), 
+                            update_date = CURRENT_TIMESTAMP 
+                        WHERE id = @id OR vend_code = @vendCode";
+            var affected = await _connection.ExecuteAsync(sql, req, transaction: _transaction);
+            return affected > 0
+                ? new OkObjectResult(new { success = true, results = "", message = "Update MastVendor Success", error = "" })
+                : new BadRequestObjectResult(new { success = false, results = "", message = "Update MastVendor Failed", error = "Vendor not found" });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+
+    public async Task<ActionResult> delete(string id)
+    {
+        try
+        {
+            var sql = @"UPDATE mast_vendor SET is_delete = true, update_date = CURRENT_TIMESTAMP WHERE id = @id OR vend_code = @id";
+            var affected = await _connection.ExecuteAsync(sql, new { id }, transaction: _transaction);
+            return affected > 0
+                ? new OkObjectResult(new { success = true, results = "", message = "Delete MastVendor Success", error = "" })
+                : new BadRequestObjectResult(new { success = false, results = "", message = "Delete MastVendor Failed", error = "" });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+
     public async Task<MastVendorResponse?> GetByCode(bool check, string vendorCode)
     {
         var sql = "";

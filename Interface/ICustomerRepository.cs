@@ -10,5 +10,7 @@ public interface ICustomerRepository
     Task<List<MastCustomerResponse>> list(MastCustomerRequest req);
 
     Task<ActionResult> create(MastCustomerRequest req);
+    Task<ActionResult> update(MastCustomerRequest req);
+    Task<ActionResult> delete(string id);
     Task<MastCustomerResponse?> GetByCode(bool check, string custCode);
 }

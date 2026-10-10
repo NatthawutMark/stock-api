@@ -9,7 +9,7 @@ using static stock_api.response.MasterResponse;
 namespace stock_api.Controllers;
 
 [ApiController]
-// [Authorize]
+[Authorize]
 [Route("api/[controller]")]
 public class MastReasonController : ControllerBase
 {

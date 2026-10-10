@@ -60,32 +60,7 @@ public class AuthController : ControllerBase
                 string userId = resUser.userid;
 
                 var resRole = await _unitOfWork.Auths.GetListRole(userId);
-                #region Set Menus
-                var resMenus = await _unitOfWork.Auths.GetMenuByUserId(userId);
-                var menuLookup = resMenus.ToLookup(m => m.parentID);
-
-                List<Menus>? BuildMenuTree(string? currentParentId)
-                {
-                    var children = menuLookup[currentParentId].ToList();
-
-                    if (!children.Any())
-                        return null;
-
-                    foreach (var child in children)
-                    {
-                        // นำ subMenus มาต่อให้กับเมนูย่อยระดับลึกลงไป
-                        child.subMenus = BuildMenuTree(child.menuID);
-                    }
-
-                    return children.OrderBy(m => m.orderNo).ToList();
-                }
-
-                var rootMenus = resMenus.Where(m => string.IsNullOrEmpty(m.parentID)).OrderBy(m => m.orderNo).ToList();
-                foreach (var root in rootMenus)
-                {
-                    root.subMenus = BuildMenuTree(root.menuID);
-                }
-                #endregion
+                var userMenus = await _systemService.GetMenuByUser(resUser);
 
                 response = new loginResponse
                 {
@@ -93,7 +68,7 @@ public class AuthController : ControllerBase
                     fName = resUser.fName,
                     lName = resUser.lName,
                     role = resRole,
-                    Menus = rootMenus.Any() ? rootMenus : null
+                    Menus = userMenus
                 };
 
                 #region Generate JWT Token

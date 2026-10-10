@@ -10,5 +10,7 @@ public interface IBrandRepository
     Task<List<MastBrandResponse>> list(MastBrandRequest req);
 
     Task<ActionResult> create(MastBrandRequest req);
+    Task<ActionResult> update(MastBrandRequest req);
+    Task<ActionResult> delete(string id);
     Task<MastBrandResponse?> GetByName(bool check, string nameTh);
 }

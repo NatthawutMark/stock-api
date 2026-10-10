@@ -10,5 +10,7 @@ public interface IVendorRepository
     Task<List<MastVendorResponse>> list(MastVendorRequest req);
 
     Task<ActionResult> create(MastVendorRequest req);
+    Task<ActionResult> update(MastVendorRequest req);
+    Task<ActionResult> delete(string id);
     Task<MastVendorResponse?> GetByCode(bool check, string vendorCode);
 }

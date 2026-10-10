@@ -21,7 +21,17 @@ public class TransTypeRepository : ITransTypeRepository
 
     public async Task<List<MastTransTypeResponse>> list(MastTransTypeRequest req)
     {
-        var sql = @"SELECT * FROM mast_trans_type WHERE is_active = @isActive AND is_delete = @isDelete";
+        var sql = @"SELECT 
+                        id,
+                        id as menuId,
+                        name_th as nameTh,
+                        name_en as nameEn,
+                        concat(name_th, '(', name_en, ')') as menuName,
+                        is_active as isActive,
+                        is_delete as isDelete
+                    FROM sys_menu 
+                    WHERE menu_type = 'TRANSACTION' AND is_active = true AND is_delete = false
+                    ORDER BY order_no";
         return (await _connection.QueryAsync<MastTransTypeResponse>(sql, req, transaction: _transaction)).ToList();
     }
 

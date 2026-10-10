@@ -10,7 +10,7 @@ using static stock_api.response.MasterResponse;
 namespace stock_api.Controllers;
 
 [ApiController]
-// [Authorize]
+[Authorize]
 [Route("api/[controller]")]
 public class MastCustomerController : ControllerBase
 {
@@ -120,6 +120,92 @@ public class MastCustomerController : ControllerBase
         {
             _unitOfWork.Dispose();
             return StatusCode(500, new { status = false, message = "An error occurred while fetching the MastCustomer", error = ex.Message });
+        }
+    }
+
+    [HttpPost("update", Name = "UpdateMastCustomer")]
+    public async Task<ActionResult> Update([FromBody] MastCustomerRequest req)
+    {
+        try
+        {
+            if (req == null)
+            {
+                return BadRequest(new { status = false, message = "Invalid request data" });
+            }
+
+            if (string.IsNullOrEmpty(req.id) && string.IsNullOrEmpty(req.custCode) && string.IsNullOrEmpty(req.originalCustCode))
+            {
+                return return200(false, null, "No data To Update", "Customer id or code is empty");
+            }
+
+            // Check if custCode is being updated to another customer's existing custCode
+            if (!string.IsNullOrEmpty(req.custCode))
+            {
+                MastCustomerResponse? checkDuplicate = await _unitOfWork.Customers.GetByCode(true, req.custCode);
+                if (checkDuplicate != null)
+                {
+                    bool isSelf = (!string.IsNullOrEmpty(req.id) && checkDuplicate.id == req.id) ||
+                                  (!string.IsNullOrEmpty(req.originalCustCode) && checkDuplicate.custCode == req.originalCustCode);
+                    if (!isSelf)
+                    {
+                        return return200(false, null, "Duplicate Data", "Customer code already exists for another customer");
+                    }
+                }
+            }
+
+            string? userId = _systemService.GetUserId();
+            req.UpdateBy = string.IsNullOrEmpty(userId) ? "admin" : userId;
+
+            var result = await _unitOfWork.Customers.update(req);
+            if (result is OkObjectResult)
+            {
+                await _unitOfWork.CompleteAsync();
+                return return200(true, null, "Update MastCustomer Success", "");
+            }
+            else if (result is BadRequestObjectResult badRequestResult)
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Update MastCustomer Failed", badRequestResult.Value?.ToString() ?? "");
+            }
+            else
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Update MastCustomer Failed", "Unknown error occurred");
+            }
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Dispose();
+            return StatusCode(500, new { status = false, message = "An error occurred while updating the MastCustomer", error = ex.Message });
+        }
+    }
+
+    [HttpPost("delete", Name = "DeleteMastCustomer")]
+    public async Task<ActionResult> Delete([FromBody] MastCustomerRequest req)
+    {
+        try
+        {
+            if (req == null || string.IsNullOrEmpty(req.id))
+            {
+                return BadRequest(new { status = false, message = "Invalid request data" });
+            }
+
+            var result = await _unitOfWork.Customers.delete(req.id);
+            if (result is OkObjectResult okResult)
+            {
+                await _unitOfWork.CompleteAsync();
+                return return200(true, null, "Delete MastCustomer Success", "");
+            }
+            else
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Delete MastCustomer Failed", "");
+            }
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Dispose();
+            return StatusCode(500, new { status = false, message = "An error occurred while deleting the MastCustomer", error = ex.Message });
         }
     }
 

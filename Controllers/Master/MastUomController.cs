@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
 using stock_api.Repositories.Dapper;
@@ -10,14 +9,13 @@ using static stock_api.response.MasterResponse;
 namespace stock_api.Controllers;
 
 [ApiController]
-// [Authorize]
+[Authorize]
 [Route("api/[controller]")]
 public class MastUomController : ControllerBase
 {
     private readonly IDbConnection _dbConnection;
     private readonly UnitOfWork _unitOfWork;
     private readonly ISystemService _systemService;
-
 
     public MastUomController(IDbConnection dbConnection, UnitOfWork unitOfWork, ISystemService systemService)
     {
@@ -27,11 +25,11 @@ public class MastUomController : ControllerBase
     }
 
     [HttpPost("list", Name = "ListMastUom")]
-    public async Task<ActionResult<List<MastUomResponse>>> Get(MastUomRequest req)
+    public async Task<ActionResult<List<MastUomResponse>>> Get([FromBody] MastUomRequest? req)
     {
         try
         {
-            req.isActive = true;
+            req ??= new MastUomRequest();
             req.isDelete = false;
 
             List<MastUomResponse> res = await _unitOfWork.Uoms.list(req);
@@ -40,7 +38,7 @@ public class MastUomController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(200, new { success = true, results = "", message = ex.Message, error = ex.InnerException?.Message });
+            return StatusCode(200, new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
         }
     }
 
@@ -54,7 +52,7 @@ public class MastUomController : ControllerBase
                 return BadRequest(new { status = false, message = "Invalid request data" });
             }
 
-            if (string.IsNullOrEmpty(req.name) )
+            if (string.IsNullOrEmpty(req.name))
             {
                 return return200(false, null, "No data To Create", "Name is empty");
             }
@@ -64,14 +62,16 @@ public class MastUomController : ControllerBase
             {
                 return return200(false, null, "Duplicate Data", "Name is already exists");
             }
-            string userId = _systemService.GetUserId();
+
+            string? userId = _systemService.GetUserId();
+            userId = string.IsNullOrEmpty(userId) ? "admin" : userId;
 
             req.id = _systemService.GenGUID();
             req.createBy = userId;
             req.UpdateBy = userId;
 
             var result = await _unitOfWork.Uoms.create(req);
-            if (result is OkObjectResult okResult)
+            if (result is OkObjectResult)
             {
                 await _unitOfWork.CompleteAsync();
                 return return200(true, null, "Create MastUom Success", "");
@@ -94,6 +94,71 @@ public class MastUomController : ControllerBase
         }
     }
 
+    [HttpPost("update", Name = "UpdateMastUom")]
+    public async Task<ActionResult> Update([FromBody] MastUomRequest req)
+    {
+        try
+        {
+            if (req == null || string.IsNullOrEmpty(req.id))
+            {
+                return BadRequest(new { status = false, message = "Invalid request data. UOM ID is required." });
+            }
+
+            string? userId = _systemService.GetUserId();
+            req.UpdateBy = string.IsNullOrEmpty(userId) ? "admin" : userId;
+
+            var result = await _unitOfWork.Uoms.update(req);
+            if (result is OkObjectResult)
+            {
+                await _unitOfWork.CompleteAsync();
+                return return200(true, null, "Update MastUom Success", "");
+            }
+            else if (result is BadRequestObjectResult badRequestResult)
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Update MastUom Failed", badRequestResult.Value?.ToString() ?? "");
+            }
+            else
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Update MastUom Failed", "Unknown error occurred");
+            }
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Dispose();
+            return StatusCode(500, new { status = false, message = "An error occurred while updating the MastUom", error = ex.Message });
+        }
+    }
+
+    [HttpPost("delete", Name = "DeleteMastUom")]
+    public async Task<ActionResult> Delete([FromBody] MastUomRequest req)
+    {
+        try
+        {
+            if (req == null || string.IsNullOrEmpty(req.id))
+            {
+                return BadRequest(new { status = false, message = "Invalid request data. UOM ID is required." });
+            }
+
+            var result = await _unitOfWork.Uoms.delete(req.id);
+            if (result is OkObjectResult)
+            {
+                await _unitOfWork.CompleteAsync();
+                return return200(true, null, "Delete MastUom Success", "");
+            }
+            else
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Delete MastUom Failed", "");
+            }
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Dispose();
+            return StatusCode(500, new { status = false, message = "An error occurred while deleting the MastUom", error = ex.Message });
+        }
+    }
 
     [HttpGet("getByName", Name = "GetMastUomByName")]
     public async Task<ActionResult> GetByName([FromQuery] string name)

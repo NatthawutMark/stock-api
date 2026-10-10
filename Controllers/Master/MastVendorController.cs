@@ -9,7 +9,7 @@ using static stock_api.response.MasterResponse;
 namespace stock_api.Controllers;
 
 [ApiController]
-// [Authorize]
+[Authorize]
 [Route("api/[controller]")]
 public class MastVendorController : ControllerBase
 {
@@ -119,6 +119,73 @@ public class MastVendorController : ControllerBase
         {
             _unitOfWork.Dispose();
             return StatusCode(500, new { status = false, message = "An error occurred while fetching the MastVendor", error = ex.Message });
+        }
+    }
+
+    [HttpPost("update", Name = "UpdateMastVendor")]
+    public async Task<ActionResult> Update([FromBody] MastVendorRequest req)
+    {
+        try
+        {
+            if (req == null || (string.IsNullOrEmpty(req.id) && string.IsNullOrEmpty(req.vendCode)))
+            {
+                return BadRequest(new { status = false, message = "Invalid request data. Vendor ID or code is required." });
+            }
+
+            string? userId = _systemService.GetUserId();
+            req.UpdateBy = string.IsNullOrEmpty(userId) ? "admin" : userId;
+
+            var result = await _unitOfWork.Vendors.update(req);
+            if (result is OkObjectResult)
+            {
+                await _unitOfWork.CompleteAsync();
+                return return200(true, null, "Update MastVendor Success", "");
+            }
+            else if (result is BadRequestObjectResult badRequestResult)
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Update MastVendor Failed", badRequestResult.Value?.ToString() ?? "");
+            }
+            else
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Update MastVendor Failed", "Unknown error occurred");
+            }
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Dispose();
+            return StatusCode(500, new { status = false, message = "An error occurred while updating the MastVendor", error = ex.Message });
+        }
+    }
+
+    [HttpPost("delete", Name = "DeleteMastVendor")]
+    public async Task<ActionResult> Delete([FromBody] MastVendorRequest req)
+    {
+        try
+        {
+            if (req == null || (string.IsNullOrEmpty(req.id) && string.IsNullOrEmpty(req.vendCode)))
+            {
+                return BadRequest(new { status = false, message = "Invalid request data. Vendor ID or code is required." });
+            }
+
+            var targetId = !string.IsNullOrEmpty(req.id) ? req.id : req.vendCode;
+            var result = await _unitOfWork.Vendors.delete(targetId);
+            if (result is OkObjectResult)
+            {
+                await _unitOfWork.CompleteAsync();
+                return return200(true, null, "Delete MastVendor Success", "");
+            }
+            else
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Delete MastVendor Failed", "");
+            }
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Dispose();
+            return StatusCode(500, new { status = false, message = "An error occurred while deleting the MastVendor", error = ex.Message });
         }
     }
 

@@ -35,9 +35,6 @@ public class AuthRes
         public string? ReplacedToken { get; set; }
     }
 
-    public class Refreshtoken : RefreshtokenResponse
-    {
-    }
     #endregion
 
     public class roles
@@ -51,11 +48,23 @@ public class AuthRes
     {
         public string menuID { get; set; }
         public string? parentID { get; set; }
-        public string NameTh { get; set; }
-        public string NameEn { get; set; }
+        public string nameTh { get; set; }
+        public string nameEn { get; set; }
         public int? orderNo { get; set; }
-        public string url { get; set; }
+        public string? menuType { get; set; }
+        public string? icon { get; set; }
+        public string? menuName => !string.IsNullOrEmpty(nameEn) ? $"{nameTh}({nameEn})" : nameTh;
+        public string? url { get; set; }
         public bool isActive { get; set; }
         public List<Menus>? subMenus { get; set; }
+    }
+
+    public class TransactionMenuResponse
+    {
+        public string id { get; set; } = null!;
+        public string? nameTh { get; set; }
+        public string? nameEn { get; set; }
+        public string? menuName { get; set; }
+        public int? orderNo { get; set; }
     }
 }

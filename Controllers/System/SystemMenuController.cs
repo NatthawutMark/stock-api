@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using stock_api.Interfaces;
 
@@ -9,6 +10,7 @@ using static stock_api.Request.SystemMenuRequest;
 namespace stock_api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class SystemMenuController : ControllerBase
 {
@@ -49,7 +51,35 @@ public class SystemMenuController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(200, new { message = "Failed to add menu" });
+            return StatusCode(200, new { message = "Failed to add menu", error = ex.Message });
+        }
+    }
+
+    [HttpGet("getMenuByUser", Name = "GetMenuByUser")]
+    public async Task<ActionResult> GetMenuByUser([FromQuery] string? userId)
+    {
+        try
+        {
+            var menus = await _systemService.GetMenuByUser(userId);
+            return StatusCode(200, new { success = true, results = menus, message = "Get menu by user successful" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = "Failed to get menu", error = ex.Message });
+        }
+    }
+
+    [HttpGet("getTransactionMenu", Name = "GetTransactionMenu")]
+    public async Task<ActionResult> GetTransactionMenu()
+    {
+        try
+        {
+            var menus = await _systemService.GetTransactionMenuByUser(_systemService.GetUserId());
+            return StatusCode(200, new { success = true, results = menus, message = "Get transaction menu successful" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = "Failed to get transaction menu", error = ex.Message });
         }
     }
 }

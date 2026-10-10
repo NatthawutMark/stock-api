@@ -50,6 +50,51 @@ public class CustomerRepository : ICustomerRepository
         }
     }
 
+    public async Task<ActionResult> update(MastCustomerRequest req)
+    {
+        try
+        {
+            var sql = @"UPDATE mast_customer 
+                        SET cust_code = COALESCE(@custCode, cust_code),
+                            cust_name = @custName, 
+                            contact_name = @contactName, 
+                            tel = @tel, 
+                            address = @address, 
+                            remark = @remark, 
+                            is_active = COALESCE(@isActive, is_active), 
+                            update_by = COALESCE(@UpdateBy, update_by), 
+                            update_date = CURRENT_TIMESTAMP 
+                        WHERE (id = @id AND @id IS NOT NULL AND @id != '') 
+                           OR (cust_code = @originalCustCode AND @originalCustCode IS NOT NULL AND @originalCustCode != '')
+                           OR (cust_code = @custCode AND (@id IS NULL OR @id = ''))";
+            var affected = await _connection.ExecuteAsync(sql, req, transaction: _transaction);
+            return affected > 0
+                ? new OkObjectResult(new { success = true, results = "", message = "Update MastCustomer Success", error = "" })
+                : new BadRequestObjectResult(new { success = false, results = "", message = "Update MastCustomer Failed", error = "Customer not found" });
+
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+
+    public async Task<ActionResult> delete(string id)
+    {
+        try
+        {
+            var sql = @"UPDATE mast_customer SET is_delete = true, update_date = CURRENT_TIMESTAMP WHERE id = @id OR cust_code = @id";
+            var affected = await _connection.ExecuteAsync(sql, new { id }, transaction: _transaction);
+            return affected > 0
+                ? new OkObjectResult(new { success = true, results = "", message = "Delete MastCustomer Success", error = "" })
+                : new BadRequestObjectResult(new { success = false, results = "", message = "Delete MastCustomer Failed", error = "" });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+
     public async Task<MastCustomerResponse?> GetByCode(bool check, string custCode)
     {
         var sql = "";

@@ -9,7 +9,7 @@ using static stock_api.response.MasterResponse;
 namespace stock_api.Controllers;
 
 [ApiController]
-// [Authorize]
+[Authorize]
 [Route("api/[controller]")]
 public class MastTransTypeController : ControllerBase
 {
@@ -25,23 +25,22 @@ public class MastTransTypeController : ControllerBase
         _systemService = systemService;
     }
 
-    [HttpPost("list", Name = "ListMastTransType")]
-    public async Task<ActionResult<List<MastTransTypeResponse>>> Get(MastTransTypeRequest req)
-    {
-        try
-        {
-            req.isActive = true;
-            req.isDelete = false;
+    // [HttpPost("list", Name = "ListMastTransType")]
+    // public async Task<ActionResult<List<MastTransTypeResponse>>> Get(MastTransTypeRequest req)
+    // {
+    //     try
+    //     {
+    //         req.isDelete = false;
 
-            List<MastTransTypeResponse> res = await _unitOfWork.TransTypes.list(req);
+    //         List<MastTransTypeResponse> res = await _unitOfWork.TransTypes.list(req);
 
-            return StatusCode(200, new { success = true, results = res, message = "", error = "" });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(200, new { success = true, results = "", message = ex.Message, error = ex.InnerException?.Message });
-        }
-    }
+    //         return StatusCode(200, new { success = true, results = res, message = "", error = "" });
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         return StatusCode(200, new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+    //     }
+    // }
 
     [HttpPost("create", Name = "CreateMastTransType")]
     public async Task<ActionResult> Create([FromBody] MastTransTypeRequest req)

@@ -20,6 +20,11 @@ public class UnitOfWork : IUnitOfWork
     public IVendorRepository Vendors { get; private set; }
     public ITransTypeRepository TransTypes { get; private set; }
     public IReasonRepository Reasons { get; private set; }
+    public IEmployeeRepository Employees { get; private set; }
+    public IStatusRepository Statuses { get; private set; }
+    public IDocTypeRepository DocTypes { get; private set; }
+    public IItemGroupRepository ItemGroups { get; private set; }
+    public IItemWarehouseRepository ItemWarehouses { get; private set; }
     public UnitOfWork(IDbConnection context, ISystemService systemService)
     {
         _connection = context;
@@ -38,6 +43,11 @@ public class UnitOfWork : IUnitOfWork
         Vendors = new VendorRepository(_connection, _transaction);
         TransTypes = new TransTypeRepository(_connection, _transaction);
         Reasons = new ReasonRepository(_connection, _transaction);
+        Employees = new EmployeeRepository(_connection, _transaction);
+        Statuses = new StatusRepository(_connection, _transaction);
+        DocTypes = new DocTypeRepository(_connection, _transaction);
+        ItemGroups = new ItemGroupRepository(_connection, _transaction);
+        ItemWarehouses = new ItemWarehouseRepository(_connection, _transaction);
     }
 
     public async Task<int> CompleteAsync()

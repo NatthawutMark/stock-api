@@ -122,6 +122,72 @@ public class MastBrandController : ControllerBase
         }
     }
 
+    [HttpPost("update", Name = "UpdateMastBrand")]
+    public async Task<ActionResult> Update([FromBody] MastBrandRequest req)
+    {
+        try
+        {
+            if (req == null || string.IsNullOrEmpty(req.id))
+            {
+                return BadRequest(new { status = false, message = "Invalid request data. Brand ID is required." });
+            }
+
+            string? userId = _systemService.GetUserId();
+            req.UpdateBy = string.IsNullOrEmpty(userId) ? "admin" : userId;
+
+            var result = await _unitOfWork.Brands.update(req);
+            if (result is OkObjectResult)
+            {
+                await _unitOfWork.CompleteAsync();
+                return return200(true, null, "Update MastBrand Success", "");
+            }
+            else if (result is BadRequestObjectResult badRequestResult)
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Update MastBrand Failed", badRequestResult.Value?.ToString() ?? "");
+            }
+            else
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Update MastBrand Failed", "Unknown error occurred");
+            }
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Dispose();
+            return StatusCode(500, new { status = false, message = "An error occurred while updating the MastBrand", error = ex.Message });
+        }
+    }
+
+    [HttpPost("delete", Name = "DeleteMastBrand")]
+    public async Task<ActionResult> Delete([FromBody] MastBrandRequest req)
+    {
+        try
+        {
+            if (req == null || string.IsNullOrEmpty(req.id))
+            {
+                return BadRequest(new { status = false, message = "Invalid request data. Brand ID is required." });
+            }
+
+            var result = await _unitOfWork.Brands.delete(req.id);
+            if (result is OkObjectResult)
+            {
+                await _unitOfWork.CompleteAsync();
+                return return200(true, null, "Delete MastBrand Success", "");
+            }
+            else
+            {
+                _unitOfWork.Dispose();
+                return return200(false, null, "Delete MastBrand Failed", "");
+            }
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Dispose();
+            return StatusCode(500, new { status = false, message = "An error occurred while deleting the MastBrand", error = ex.Message });
+        }
+    }
+
     #region Private Methods
     [NonAction]
     public ObjectResult return200(bool success = true, object results = null, string message = "", string error = "")

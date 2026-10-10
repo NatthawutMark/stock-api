@@ -8,7 +8,8 @@ namespace stock_api.Interfaces;
 public interface IUomRepository
 {
     Task<List<MastUomResponse>> list(MastUomRequest req);
-
     Task<ActionResult> create(MastUomRequest req);
+    Task<ActionResult> update(MastUomRequest req);
+    Task<ActionResult> delete(string id);
     Task<MastUomResponse?> GetByName(bool check, string name);
 }
