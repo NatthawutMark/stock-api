@@ -138,6 +138,7 @@ public class MasterResponse
         public string? fName { get; set; }
         public string? lName { get; set; }
         public string? tel { get; set; }
+        public string? remark { get; set; }
         public bool? isActive { get; set; }
         public bool? isDelete { get; set; }
     }

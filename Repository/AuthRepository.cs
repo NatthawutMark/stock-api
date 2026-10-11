@@ -19,7 +19,7 @@ public class AuthRepository : IAuthRepository
         _transaction = transaction;
     }
 
-    public async Task<userLogin?> LoginAsync(loginRequest login)
+    public async Task<userLogin?> LoginAsync(LoginRequest login)
     {
         var sql = @"SELECT ua.user_id AS userid,
                            ua.username,
@@ -79,6 +79,7 @@ public class AuthRepository : IAuthRepository
             throw new Exception($"Error retrieving menus for user {userid}: {ex.Message}", ex);
         }
     }
+
     #region Refresh Token
     public async Task<int> AddRefreshTokenAsync(RefreshtokenRequest token)
     {
@@ -138,4 +139,12 @@ public class AuthRepository : IAuthRepository
         return await _connection.ExecuteAsync(sql, new { now, oldDate = now.AddDays(-revokedOlderThanDays) }, transaction: _transaction);
     }
     #endregion
+
+    public async Task<int> SaveLoginLogAsync(string userId)
+    {
+        var sql = @"INSERT INTO login_log (id, user_id, login_time)
+                    VALUES (@Id, @UserId, @LoginTime)";
+
+        return await _connection.ExecuteAsync(sql, new { Id = Guid.NewGuid().ToString().ToUpper().Replace("-", ""), UserId = userId, LoginTime = DateTime.Now }, transaction: _transaction);
+    }
 }

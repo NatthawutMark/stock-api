@@ -1,3 +1,4 @@
+using static stock_api.Request.TransactionRequest;
 using static stock_api.Response.AuthRes;
 
 namespace stock_api.Interfaces;
@@ -14,4 +15,5 @@ public interface ISystemService
     Task<List<TransactionMenuResponse>> GetTransactionMenuByUser();
     Task<List<TransactionMenuResponse>> GetTransactionMenuByUser(string? userIdentifier);
     Task<List<TransactionMenuResponse>> GetTransactionMenuByUser(userLogin user);
+    Task<string> GetDocNumber(DocNumber req);
 }

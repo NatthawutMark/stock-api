@@ -19,6 +19,7 @@ public interface IUnitOfWork : IDisposable
     IDocTypeRepository DocTypes { get; }
     IItemGroupRepository ItemGroups { get; }
     IItemWarehouseRepository ItemWarehouses { get; }
+    IDocTransRepository DocTrans { get; }
     // สามารถเพิ่ม Repository อื่นๆ ตรงนี้ได้
     Task<int> CompleteAsync();
 }

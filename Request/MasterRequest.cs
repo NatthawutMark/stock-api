@@ -145,11 +145,13 @@ public class MasterRequest
         private string? _fName;
         private string? _lName;
         private string? _tel;
+        private string? _remark;
         public string? id { get; set; }
         public string? empCode { get => _empCode; set => _empCode = value?.Trim(); }
         public string? fName { get => _fName; set => _fName = value?.Trim(); }
         public string? lName { get => _lName; set => _lName = value?.Trim(); }
         public string? tel { get => _tel; set => _tel = value?.Trim(); }
+        public string? remark { get => _remark; set => _remark = value?.Trim(); }
         public bool? isActive { get; set; }
         public bool? isDelete { get; set; }
         public string? createBy { get; set; }

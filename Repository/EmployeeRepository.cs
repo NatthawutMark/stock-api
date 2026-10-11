@@ -35,8 +35,9 @@ public class EmployeeRepository : IEmployeeRepository
                         f_name,
                         l_name,
                         tel,
+                        remark,
                         create_by, 
-                        update_by) VALUES (@id, @empCode, @fName, @lName, @tel, @createBy, @UpdateBy)";
+                        update_by) VALUES (@id, @empCode, @fName, @lName, @tel,@remark, @createBy, @UpdateBy)";
             return await _connection.ExecuteAsync(sql, req, transaction: _transaction) > 0
                 ? new OkObjectResult(new { success = true, results = "", message = "Create MastEmployee Success", error = "" })
                 : new BadRequestObjectResult(new { success = false, results = "", message = "Create MastEmployee Failed", error = "" });

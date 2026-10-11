@@ -4,6 +4,9 @@ using Dapper;
 using Npgsql;
 using stock_api.Interfaces;
 using static stock_api.Response.AuthRes;
+using static stock_api.Request.TransactionRequest;
+using Microsoft.AspNetCore.Routing.Matching;
+using static stock_api.Response.RunningDocResponse;
 
 namespace stock_api.Services;
 
@@ -200,5 +203,128 @@ public class SystemService : ISystemService
 
         var result = await _connection.QueryAsync<TransactionMenuResponse>(sql, new { userIdentifier = userIdentifier.Trim() });
         return result.ToList();
+    }
+
+    public async Task<string> GetDocNumber(DocNumber req)
+    {
+        string CfgId = "";
+        int _curruentNumber = 0;
+        string _docNo = "";
+        int _year = DateTime.Now.Year;
+        int _month = DateTime.Now.Month;
+        var _transaction = _connection.BeginTransaction();
+        try
+        {
+
+            #region find CfgNumber
+            string strCfgNumber = "Select * from config_doc_number where menu_id = @menuId ";
+            if (!string.IsNullOrEmpty(req.docTypeId))
+            {
+                strCfgNumber += " and doc_type_id = @docTypeId";
+            }
+            var resCfg = _connection.QueryFirstOrDefault(strCfgNumber, req);
+            #endregion
+
+            if (resCfg == null)
+            {
+                CfgId = GenGUID();
+                string strInsertCfg = @"INSERT INTO config_doc_number (id, menu_id, doc_type_id, prefix, digit, reset_period, pattern) 
+                                    VALUES (@id, @menuId,  @docTypeId, @prefix, @digit, @resetPeriod, @Pattern) RETURNING *;";
+
+                var resInsertCfg = await _connection.QuerySingleAsync<ConfigDocNumber>(strInsertCfg, new
+                {
+                    id = CfgId,
+                    menuId = req.menuId,
+                    docTypeId = !string.IsNullOrEmpty(req.docTypeId) ? req.docTypeId : null,
+                    prefix = GetPrefixByMenu(req.menuId),
+                    digit = 5,
+                    resetPeriod = "MONTHLY",
+                    Pattern = "{{PREFIX}}-{{YY}}{{MM}}{{NUMBER}}"
+                });
+                _transaction.Commit();
+
+                #region Insert Running Doc
+                string strInsertnum = @"INSERT INTO doc_number_running (id, config_id, running_year, running_month, current_number, last_doc_no, update_date) 
+                                    VALUES (@id, @configId, @year, @month, @currentNumber, @LastDocNo, @updateDate)";
+
+                _curruentNumber += 1;
+
+                _docNo = resInsertCfg.Pattern
+                        .Replace("{{PREFIX}}", resInsertCfg.prefix)
+                        .Replace("{{YY}}", _year.ToString())
+                        .Replace("{{MM}}", _month.ToString())
+                        .Replace("{{NUMBER}}", _curruentNumber.ToString().PadLeft(resInsertCfg.digit, '0'));
+
+                await _connection.QueryAsync(strInsertnum, new
+                {
+                    id = GenGUID(),
+                    configId = CfgId,
+                    year = _year,
+                    month = _month,
+                    currentNumber = _curruentNumber,
+                    LastDocNo = _docNo,
+                    updateDate = DateTime.Now
+                });
+                _transaction.Commit();
+                #endregion
+            }
+            else
+            {
+                string strDocRunning = "SELECT * from doc_number_running where config_id = @configId and running_year = @year and running_month = @month";
+                var resDocRunning = await _connection.QueryFirstOrDefaultAsync<DocNumberRunning>(strDocRunning, new { configId = resCfg.id, year = _year, month = _month });
+                if (resDocRunning != null)
+                {
+                    _curruentNumber = (resDocRunning.CurrentNumber + 1);
+                    _docNo = resCfg.Pattern
+                            .Replace("{{PREFIX}}", resCfg.prefix)
+                            .Replace("{{YY}}", resDocRunning.RunningYear.ToString())
+                            .Replace("{{MM}}", resDocRunning.RunningMonth.ToString())
+                            .Replace("{{NUMBER}}", _curruentNumber.ToString().PadLeft(resCfg.digit, '0'));
+
+                    string updateDocRunning = "UPDATE doc_number_running SET current_number = @currentNumber, last_doc_no = @docNo where id = @id";
+
+                    await _connection.QueryAsync(updateDocRunning, new { currentNumber = _curruentNumber, docNo = _docNo, id = resDocRunning.Id });
+                    _transaction.Commit();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _transaction.Rollback();
+            return "";
+        }
+        return _docNo;
+    }
+
+
+
+    public string GetPrefixByMenu(string menuId)
+    {
+        string prefix = "";
+        switch (menuId)
+        {
+            case "00E03A994280450ABF7E2EE62A7AD4D6": // Receive
+                prefix = "GR";
+                break;
+            case "85D356B7877647C49B61B71FB047E0B6": // Issue
+                prefix = "GI";
+                break;
+            case "322D946D544B4A179EB9E09613CAC5DC": // Return
+                prefix = "RT";
+                break;
+            case "680AB9E0D80D4806AD119476FA511EB4": // Stock Disposal
+                prefix = "SD";
+                break;
+            case "92AEEB580AD14B848F4AB6CD294A17C5": // Trans-in
+                prefix = "TF-IN";
+                break;
+            case "268A2969A63F4D448AEFB1C8CE64C527": // Trans-out
+                prefix = "TF-OUT";
+                break;
+            default:
+                prefix = "DOC";
+                break;
+        }
+        return prefix;
     }
 }

@@ -51,7 +51,7 @@ public class LocationRepository : ILocationRepository
                             is_active = COALESCE(@isActive, is_active), 
                             update_by = COALESCE(@UpdateBy, update_by), 
                             update_date = CURRENT_TIMESTAMP 
-                        WHERE id = @id OR code = @code";
+                        WHERE id = @id";
             var affected = await _connection.ExecuteAsync(sql, req, transaction: _transaction);
             return affected > 0
                 ? new OkObjectResult(new { success = true, results = "", message = "Update MastLocation Success", error = "" })

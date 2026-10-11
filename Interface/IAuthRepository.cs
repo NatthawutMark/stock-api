@@ -8,7 +8,7 @@ namespace stock_api.Interfaces;
 
 public interface IAuthRepository
 {
-    Task<userLogin?> LoginAsync(loginRequest login);
+    Task<userLogin?> LoginAsync(LoginRequest login);
     Task<userLogin?> GetUserByIdAsync(string userId);
     Task<roles?> GetListRole(string userid);
     Task<IEnumerable<Menus>> GetMenuByUserId(string userid);
@@ -19,4 +19,5 @@ public interface IAuthRepository
     Task<int> RevokeRefreshTokenAsync(string token, string? replacedToken = null);
     Task<int> RevokeAllRefreshTokensByUserAsync(string userId);
     Task<int> DeleteExpiredRefreshTokensAsync(int revokedOlderThanDays = 3);
+    Task<int> SaveLoginLogAsync(string userId);
 }

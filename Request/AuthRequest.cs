@@ -4,10 +4,15 @@ namespace stock_api.Request;
 
 public static class AuthRequest
 {
-    public class loginRequest
+    public class LoginRequest
     {
         public string username { get; set; }
         public string password { get; set; }
+    }  
+    public class LoginLogRequest
+    {
+        public string userId { get; set; }
+        public DateTime loginTime { get; set; }
     }
 
     public class RefreshtokenRequest

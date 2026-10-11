@@ -30,7 +30,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login", Name = "Login")]
-    public async Task<ActionResult> Login([FromBody] loginRequest req)
+    public async Task<ActionResult> Login([FromBody] LoginRequest req)
     {
         try
         {
@@ -78,7 +78,7 @@ public class AuthController : ControllerBase
 
                 refreshToken = new RefreshtokenRequest
                 {
-                    Id = _systemService.GenGUID(),
+                    Id = _unitOfWork.GenGUID(),
                     UserId = userId,
                     Token = refreshTokenValue,
                     ExpiryDate = DateTime.Now.AddDays(expirationMinutes),
@@ -86,11 +86,15 @@ public class AuthController : ControllerBase
                     CreateDate = DateTime.Now
                 };
                 await _unitOfWork.Auths.AddRefreshTokenAsync(refreshToken);
-                await _unitOfWork.CompleteAsync(); // Commit transaction
 
                 AccessToken = accessToken;
                 RefreshToken = refreshTokenValue;
                 #endregion
+            
+                #region LoginLog
+                await _unitOfWork.Auths.SaveLoginLogAsync(userId);
+                #endregion
+                await _unitOfWork.CompleteAsync(); // Commit transaction
             }
 
             return StatusCode(200, new { success = true, results = new { response, AccessToken, RefreshToken }, message = "Login successful" });

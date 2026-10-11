@@ -25,6 +25,7 @@ public class UnitOfWork : IUnitOfWork
     public IDocTypeRepository DocTypes { get; private set; }
     public IItemGroupRepository ItemGroups { get; private set; }
     public IItemWarehouseRepository ItemWarehouses { get; private set; }
+    public IDocTransRepository DocTrans { get; private set; }
     public UnitOfWork(IDbConnection context, ISystemService systemService)
     {
         _connection = context;
@@ -48,6 +49,7 @@ public class UnitOfWork : IUnitOfWork
         DocTypes = new DocTypeRepository(_connection, _transaction);
         ItemGroups = new ItemGroupRepository(_connection, _transaction);
         ItemWarehouses = new ItemWarehouseRepository(_connection, _transaction);
+        DocTrans = new DocTransRepository(_connection, _transaction);
     }
 
     public async Task<int> CompleteAsync()
@@ -68,5 +70,9 @@ public class UnitOfWork : IUnitOfWork
     {
         _transaction?.Dispose();
         _connection?.Dispose();
+    }
+    public string GenGUID()
+    {
+        return Guid.NewGuid().ToString().ToUpper().Replace("-", "");
     }
 }
