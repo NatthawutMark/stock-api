@@ -1,10 +1,12 @@
 using System;
+using System.Runtime.CompilerServices;
 namespace stock_api.Response;
 
 public class RunningDocResponse
 {
     public class ConfigDocNumber
     {
+        public string Id { get; set; }
         public string menuId { get; set; }
         public string? docTypeId { get; set; }
         public string prefix { get; set; }

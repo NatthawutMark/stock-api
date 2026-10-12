@@ -18,12 +18,6 @@ public class WarehouseRepository : IWarehouseRepository
         _transaction = transaction;
     }
 
-    public async Task<IEnumerable<MastWarehouseResponse>> GetAllAsync()
-    {
-        var sql = "SELECT * FROM mast_warehouse WHERE is_delete = false ORDER BY code ASC";
-        return await _connection.QueryAsync<MastWarehouseResponse>(sql, transaction: _transaction);
-    }
-
     public async Task<List<MastWarehouseResponse>> list(MastWarehouseRequest req)
     {
         var sql = "SELECT * FROM mast_warehouse WHERE is_delete = false";
@@ -35,8 +29,9 @@ public class WarehouseRepository : IWarehouseRepository
         {
             sql += " AND (code ILIKE @Search OR warehouse_name ILIKE @Search)";
         }
-        sql += " ORDER BY code ASC";
-        return (await _connection.QueryAsync<MastWarehouseResponse>(sql, new {
+        sql += " ORDER BY create_date ASC";
+        return (await _connection.QueryAsync<MastWarehouseResponse>(sql, new
+        {
             isActive = req?.isActive,
             Search = $"%{req?.Code}%"
         }, transaction: _transaction)).ToList();

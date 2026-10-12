@@ -26,6 +26,7 @@ public class UnitOfWork : IUnitOfWork
     public IItemGroupRepository ItemGroups { get; private set; }
     public IItemWarehouseRepository ItemWarehouses { get; private set; }
     public IDocTransRepository DocTrans { get; private set; }
+    public IDocReceiveRepository DocReceives { get; private set; }
     public UnitOfWork(IDbConnection context, ISystemService systemService)
     {
         _connection = context;
@@ -50,6 +51,7 @@ public class UnitOfWork : IUnitOfWork
         ItemGroups = new ItemGroupRepository(_connection, _transaction);
         ItemWarehouses = new ItemWarehouseRepository(_connection, _transaction);
         DocTrans = new DocTransRepository(_connection, _transaction);
+        DocReceives = new DocReceiveRepository(_connection, _transaction);
     }
 
     public async Task<int> CompleteAsync()

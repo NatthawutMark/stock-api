@@ -6,7 +6,7 @@ namespace stock_api.Interfaces;
 
 public interface IWarehouseRepository
 {
-    Task<IEnumerable<MastWarehouseResponse>> GetAllAsync();
+
     Task<List<MastWarehouseResponse>> list(MastWarehouseRequest req);
     Task<MastWarehouseResponse?> GetByIdAsync(object id);
     Task<MastWarehouseResponse?> GetByCodeAsync(object code);

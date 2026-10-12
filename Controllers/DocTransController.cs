@@ -56,37 +56,10 @@ public class DocTransController : ControllerBase
                 return return200(false, null, "Validation Error", "menuId is required");
             }
 
-            // if (string.IsNullOrEmpty(req.docTypeId))
-            // {
-            //     return return200(false, null, "Validation Error", "docTypeId is required");
-            // }
-
-            // ถ้าไม่มี docNo ให้สร้างอัตโนมัติจาก GetDocNumber
-            // if (string.IsNullOrWhiteSpace(req.docNo))
-            // {
-            req.docNo = await _systemService.GetDocNumber(new DocNumber
-            {
-                menuId = req.menuId,
-                docTypeId = req.docTypeId
-            });
-            // }
-            // else
-            // {
-            //     // ตรวจสอบเลขที่เอกสารซ้ำ
-            //     var checkDoc = await _unitOfWork.DocTrans.GetByDocNo(req.docNo);
-            //     if (checkDoc != null)
-            //     {
-            //         return return200(false, null, "Duplicate Document Number", $"DocNo '{req.docNo}' already exists");
-            //     }
-            // }
 
             string userId = _systemService.GetUserId() ?? "system";
 
-            if (string.IsNullOrWhiteSpace(req.id))
-            {
-                req.id = _systemService.GenGUID();
-            }
-
+            req.id = _systemService.GenGUID();
             req.createBy = userId;
             req.updateBy = userId;
 
@@ -95,7 +68,18 @@ public class DocTransController : ControllerBase
                 req.statusCode = "DRAFT";
             }
 
+            if (req.statusCode.ToUpper() == "SAVE")
+            {
+                req.docNo = await _systemService.GetDocNumber(new DocNumber
+                {
+                    menuId = req.menuId,
+                    docTypeId = req.docTypeId
+                });
+            }
+
             var result = await _unitOfWork.DocTrans.Create(req);
+            // if (req.menuId == "")
+
             if (result is OkObjectResult)
             {
                 await _unitOfWork.CompleteAsync();

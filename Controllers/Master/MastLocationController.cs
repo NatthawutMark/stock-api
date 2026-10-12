@@ -10,7 +10,7 @@ using static stock_api.response.MasterResponse;
 namespace stock_api.Controllers;
 
 [ApiController]
-[Authorize] 
+[Authorize]
 [Route("api/[controller]")]
 public class MastLocationController : ControllerBase
 {
@@ -59,7 +59,7 @@ public class MastLocationController : ControllerBase
                 return return200(false, null, "No data To Create", "Code and Name is empty");
             }
 
-            MastLocationResponse? checkDuplicate = await _unitOfWork.Locations.GetByCode(true, req.code);
+            MastLocationResponse? checkDuplicate = await _unitOfWork.Locations.GetByCode(true, req.code, req.warehouseId);
             if (checkDuplicate != null)
             {
                 return return200(false, null, "Duplicate Data", "Code is already exists");
@@ -105,7 +105,7 @@ public class MastLocationController : ControllerBase
                 return BadRequest(new { status = false, message = "Invalid request data" });
             }
 
-            MastLocationResponse? res = await _unitOfWork.Locations.GetByCode(false, code);
+            MastLocationResponse? res = await _unitOfWork.Locations.GetByCode(false, code, "");
             if (res != null)
             {
                 return return200(true, res, "Get MastLocation Success", "");

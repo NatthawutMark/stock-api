@@ -182,7 +182,7 @@ public class DocTransRepository : IDocTransRepository
             {
                 req.id,
                 req.menuId,
-                statusCode = string.IsNullOrEmpty(req.statusCode) ? "DRAFT" : req.statusCode,
+                statusCode = string.IsNullOrEmpty(req.statusCode) ? "DRAFT" : req.statusCode.ToUpper(),
                 req.docTypeId,
                 req.docNo,
                 docDate = req.docDate ?? DateTime.Now,

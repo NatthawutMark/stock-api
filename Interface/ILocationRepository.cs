@@ -12,5 +12,5 @@ public interface ILocationRepository
     Task<ActionResult> create(MastLocationRequest req);
     Task<ActionResult> update(MastLocationRequest req);
     Task<ActionResult> delete(string id);
-    Task<MastLocationResponse?> GetByCode(bool check, string code);
+    Task<MastLocationResponse?> GetByCode(bool check, string code,string? warehouseId);
 }

@@ -22,6 +22,9 @@ public class LocationRepository : ILocationRepository
     public async Task<List<MastLocationResponse>> list(MastLocationRequest req)
     {
         var sql = @"SELECT * FROM mast_location WHERE is_active = @isActive AND is_delete = @isDelete";
+        if (!string.IsNullOrEmpty(req.warehouseId))
+            sql += @" and warehouse_id = @warehouseId";
+
         return (await _connection.QueryAsync<MastLocationResponse>(sql, req, transaction: _transaction)).ToList();
     }
 
@@ -29,7 +32,7 @@ public class LocationRepository : ILocationRepository
     {
         try
         {
-            var sql = @"INSERT INTO mast_location(id, code, name, create_by, update_by) VALUES (@id, @code, @name, @createBy, @UpdateBy)";
+            var sql = @"INSERT INTO mast_location(id, code, name, warehouse_id, create_by, update_by) VALUES (@id, @code, @name, @warehouseId, @createBy, @UpdateBy)";
             return await _connection.ExecuteAsync(sql, req, transaction: _transaction) > 0
                 ? new OkObjectResult(new { success = true, results = "", message = "Create MastLocation Success", error = "" })
                 : new BadRequestObjectResult(new { success = false, results = "", message = "Create MastLocation Failed", error = "" });
@@ -79,15 +82,22 @@ public class LocationRepository : ILocationRepository
         }
     }
 
-    public async Task<MastLocationResponse?> GetByCode(bool check, string code)
+    public async Task<MastLocationResponse?> GetByCode(bool check, string code, string? warehouseId)
     {
         var sql = "";
         if (check == true)
             sql = "SELECT * FROM mast_location WHERE code = @code AND is_active = true AND is_delete = false";
         else
+        {
             sql = "SELECT * FROM mast_location WHERE (code like @code) AND is_active = true AND is_delete = false";
+        }
 
-        return await _connection.QueryFirstOrDefaultAsync<MastLocationResponse>(sql, new { code = check ? code.Trim() : $"%{code.Trim()}%" }, transaction: _transaction);
+        if (!string.IsNullOrEmpty(warehouseId))
+        {
+            sql += " AND warehouse_id = @warehouseId";
+        }
+
+        return await _connection.QueryFirstOrDefaultAsync<MastLocationResponse>(sql, new { code = check ? code.Trim() : $"%{code.Trim()}%", warehouseId = warehouseId }, transaction: _transaction);
     }
 
     // public async Task<MastBrand?> GetByIdAsync(object id)

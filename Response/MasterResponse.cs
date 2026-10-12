@@ -43,6 +43,7 @@ public class MasterResponse
         public string? id { get; set; }
         public string? code { get; set; }
         public string? name { get; set; }
+        public string? warehouseId { get; set; }
         public bool? isActive { get; set; }
     }
     #endregion

@@ -44,6 +44,7 @@ public class MasterRequest
         public string? id { get; set; }
         public string? code { get; set; }
         public string? name { get; set; }
+        public string? warehouseId { get; set;}
         public bool? isActive { get; set; }
         public bool? isDelete { get; set; }
         public string? createBy { get; set; }
