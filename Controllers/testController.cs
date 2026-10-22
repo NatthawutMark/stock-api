@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using stock_api.Interfaces;
-using stock_api.Repositories.Dapper;
+using stock_api.Repositories;
 
 namespace stock_api.Controllers;
 

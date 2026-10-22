@@ -3,9 +3,9 @@ using System.Data;
 using stock_api.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using static stock_api.Request.MasterRequest;
-using static stock_api.response.MasterResponse;
+using static stock_api.Response.MasterResponse;
 
-namespace stock_api.Repositories.Dapper;
+namespace stock_api.Repositories;
 
 public class ItemRepository : IItemRepository
 {
@@ -27,8 +27,8 @@ public class ItemRepository : IItemRepository
                     i.item_name as itemName,
                     i.brand_id as brandId,
                     mb.name_th as brandName,
-                    i.min_alter as minAlert,
-                    i.max_alter as maxAlert,
+                    i.min_alert as minAlert,
+                    i.max_alert as maxAlert,
                     i.uom_id as uomId,
                     mu.name as uomName,
                     i.location_id as locationId,
@@ -73,8 +73,8 @@ public class ItemRepository : IItemRepository
                 i.item_name as itemName,
                 i.brand_id as brandId,
                 mb.name_th as brandName,
-                i.min_alter as minAlert,
-                i.max_alter as maxAlert,
+                i.min_alert as minAlert,
+                i.max_alert as maxAlert,
                 i.uom_id as uomId,
                 mu.name as uomName,
                 i.location_id as locationId,
@@ -97,7 +97,7 @@ public class ItemRepository : IItemRepository
         try
         {
             var sql = @"INSERT INTO mast_item (
-                id, item_code, item_name, brand_id, min_alter, max_alter,
+                id, item_code, item_name, brand_id, min_alert, max_alert,
                 uom_id, location_id, buy_price, sell_price, is_lotno, is_serialno,
                 is_active, is_delete, create_by, update_by, create_date, update_date
             ) VALUES (
@@ -124,8 +124,8 @@ public class ItemRepository : IItemRepository
                         SET item_code = @itemCode,
                             item_name = @itemName,
                             brand_id = @brandId,
-                            min_alter = @minAlert,
-                            max_alter = @maxAlert,
+                            min_alert = @minAlert,
+                            max_alert = @maxAlert,
                             uom_id = @uomId,
                             location_id = @locationId,
                             buy_price = @buyPrice,

@@ -2,6 +2,7 @@ using System.Data;
 using System.Security.Claims;
 using Dapper;
 using Npgsql;
+using Microsoft.Extensions.Configuration;
 using stock_api.Interfaces;
 using static stock_api.Response.AuthRes;
 using static stock_api.Request.TransactionRequest;
@@ -14,10 +15,18 @@ public class SystemService : ISystemService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IDbConnection _connection;
-    public SystemService(IHttpContextAccessor httpContextAccessor, IDbConnection connection)
+    private readonly string _connectionString;
+
+    public SystemService(IHttpContextAccessor httpContextAccessor, IDbConnection connection, IConfiguration? configuration = null)
     {
         _httpContextAccessor = httpContextAccessor;
         _connection = connection;
+        _connectionString = configuration?.GetConnectionString("DefaultConnection") ?? _connection.ConnectionString;
+    }
+
+    private NpgsqlConnection CreateConnection()
+    {
+        return new NpgsqlConnection(_connectionString);
     }
 
     public string GenGUID()
@@ -113,7 +122,8 @@ public class SystemService : ISystemService
               AND menu.is_active = true
               AND (menu.is_delete = false OR menu.is_delete IS NULL)";
 
-        var resMenus = (await _connection.QueryAsync<Menus>(sql, new { userIdentifier = userIdentifier.Trim() })).ToList();
+        await using var conn = CreateConnection();
+        var resMenus = (await conn.QueryAsync<Menus>(sql, new { userIdentifier = userIdentifier.Trim() })).ToList();
 
         if (!resMenus.Any())
         {
@@ -201,76 +211,93 @@ public class SystemService : ISystemService
               AND (menu.is_delete = false OR menu.is_delete IS NULL)
             ORDER BY menu.order_no";
 
-        var result = await _connection.QueryAsync<TransactionMenuResponse>(sql, new { userIdentifier = userIdentifier.Trim() });
+        await using var conn = CreateConnection();
+        var result = await conn.QueryAsync<TransactionMenuResponse>(sql, new { userIdentifier = userIdentifier.Trim() });
         return result.ToList();
     }
 
     public async Task<string> GetDocNumber(DocNumber req)
     {
+        if (req == null || string.IsNullOrWhiteSpace(req.menuId))
+        {
+            return "";
+        }
+
         var now = DateTime.Now;
         int year = now.Year;
         int month = now.Month;
 
-        using var tx = _connection.BeginTransaction();
+        await using var conn = CreateConnection();
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
         try
         {
             // 1. หา Config (ถ้าไม่มี ให้สร้างใหม่ทันที)
             string sqlCfg = @"SELECT * FROM config_doc_number 
-                          WHERE menu_id = @menuId AND (@docTypeId IS NULL OR doc_type_id = @docTypeId)";
+                          WHERE menu_id = @menuId ";//AND (@docTypeId IS NULL OR doc_type_id = @docTypeId)
 
-            var cfg = await _connection.QueryFirstOrDefaultAsync<ConfigDocNumber>(sqlCfg, req, tx);
+            var cfgParam = new
+            {
+                menuId = req.menuId,
+                docTypeId = string.IsNullOrWhiteSpace(req.docTypeId) ? null : req.docTypeId
+            };
+
+            var cfg = await conn.QueryFirstOrDefaultAsync<ConfigDocNumber>(sqlCfg, cfgParam, tx);
             if (cfg == null)
             {
-                string sqlInsertCfg = @"INSERT INTO config_doc_number (id, menu_id, doc_type_id, prefix, digit, reset_period, pattern) 
-                                    VALUES (@id, @menuId, @docTypeId, @prefix, 5, 'MONTHLY', '{{PREFIX}}-{{YY}}{{MM}}{{NUMBER}}') 
-                                    RETURNING *;";
-                cfg = await _connection.QuerySingleAsync<ConfigDocNumber>(sqlInsertCfg, new
+                string sqlInsertCfg = @"INSERT INTO config_doc_number (id, menu_id, prefix, digit, reset_period, pattern) 
+                                    VALUES (@id, @menuId,  @prefix, 5, 'MONTHLY', '{{PREFIX}}-{{YY}}{{MM}}{{NUMBER}}') 
+                                    RETURNING *;";//doc_type_id, @docTypeId,
+                cfg = await conn.QuerySingleAsync<ConfigDocNumber>(sqlInsertCfg, new
                 {
                     id = GenGUID(),
                     menuId = req.menuId,
-                    docTypeId = string.IsNullOrEmpty(req.docTypeId) ? null : req.docTypeId,
                     prefix = GetPrefixByMenu(req.menuId)
                 }, tx);
             }
 
-            // 2. ดึง Running ล่าสุดของปี/เดือนนั้น
+            // 2. ดึง Running ล่าสุดของปี/เดือนนั้น (พร้อม FOR UPDATE เพื่อป้องกัน Race Condition)
             string sqlGetRunning = @"SELECT * FROM doc_number_running 
-                                 WHERE config_id = @configId AND running_year = @year AND running_month = @month";
-            var running = await _connection.QueryFirstOrDefaultAsync<DocNumberRunning>(sqlGetRunning, new { configId = cfg.Id, year, month }, tx);
+                                 WHERE config_id = @configId AND running_year = @year AND running_month = @month FOR UPDATE";
+            var running = await conn.QueryFirstOrDefaultAsync<DocNumberRunning>(sqlGetRunning, new { configId = cfg.Id, year, month }, tx);
 
             // คำนวณเลขถัดไป (ถ้าเป็นเดือนใหม่ หรือยังไม่มีประวัติ = เริ่มที่ 1)
             int currentNumber = (running?.CurrentNumber ?? 0) + 1;
 
-            // 3. ประกอบเลขเอกสาร (รวมไว้จุดเดียว ไม่ต้องเขียน Replace ซ้ำ)
+            // 3. ประกอบเลขเอกสาร (รวมไว้จุดเดียว รองรับทั้ง {{ }} และ { })
             string docNo = cfg.Pattern
                 .Replace("{{PREFIX}}", cfg.prefix)
+                .Replace("{PREFIX}", cfg.prefix)
                 .Replace("{{YY}}", year.ToString())
+                .Replace("{YY}", year.ToString())
                 .Replace("{{MM}}", month.ToString("D2")) // D2 แปลงเป็น 2 หลักเสมอ เช่น 01, 02
-                .Replace("{{NUMBER}}", currentNumber.ToString().PadLeft(cfg.digit, '0'));
+                .Replace("{MM}", month.ToString("D2"))
+                .Replace("{{NUMBER}}", currentNumber.ToString().PadLeft(cfg.digit, '0'))
+                .Replace("{NUMBER}", currentNumber.ToString().PadLeft(cfg.digit, '0'));
 
             // 4. บันทึก Running Number (Insert ถ้ายังไม่มี / Update ถ้ามีอยู่แล้ว)
             if (running == null)
             {
                 string sqlInsertRunning = @"INSERT INTO doc_number_running (id, config_id, running_year, running_month, current_number, last_doc_no, update_date) 
                                         VALUES (@id, @configId, @year, @month, @currentNumber, @lastDocNo, CURRENT_TIMESTAMP)";
-                await _connection.ExecuteAsync(sqlInsertRunning, new { id = GenGUID(), configId = cfg.Id, year, month, currentNumber, lastDocNo = docNo }, tx);
+                await conn.ExecuteAsync(sqlInsertRunning, new { id = GenGUID(), configId = cfg.Id, year, month, currentNumber, lastDocNo = docNo }, tx);
             }
             else
             {
                 string sqlUpdateRunning = @"UPDATE doc_number_running 
                                         SET current_number = @currentNumber, last_doc_no = @lastDocNo, update_date = CURRENT_TIMESTAMP 
                                         WHERE id = @id";
-                await _connection.ExecuteAsync(sqlUpdateRunning, new { currentNumber, lastDocNo = docNo, id = running.Id }, tx);
+                await conn.ExecuteAsync(sqlUpdateRunning, new { currentNumber, lastDocNo = docNo, id = running.Id }, tx);
             }
 
             // 5. Commit จุดเดียวตอนท้ายสุด
-            tx.Commit();
+            await tx.CommitAsync();
             return docNo;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            tx.Rollback();
-            return "";
+            await tx.RollbackAsync();
+            throw new Exception($"Generate DocNumber failed: {ex.Message}", ex);
         }
     }
 

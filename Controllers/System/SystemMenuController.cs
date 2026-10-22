@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using stock_api.Interfaces;
 
-using stock_api.Repositories.Dapper;
+using stock_api.Repositories;
 using stock_api.Request;
 using stock_api.Services;
 using static stock_api.Request.SystemMenuRequest;

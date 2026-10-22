@@ -40,10 +40,8 @@ public static class TransactionResponse
         public string? createBy { get; set; }
         public DateTime updateDate { get; set; }
         public string? updateBy { get; set; }
-
         public List<DocTransLogResponse>? logs { get; set; }
     }
-
     public class DocTransLogResponse
     {
         public string id { get; set; } = null!;
@@ -58,5 +56,57 @@ public static class TransactionResponse
         public DateTime createDate { get; set; }
         public string? createBy { get; set; }
     }
+    public class DocReceiveDetailResponse
+    {
+        public string? id { get; set; }
+        public string? docId { get; set; }
+        public string? itemId { get; set; }
+        public string? itemCode { get; set; }
+        public string? itemName { get; set; }
+        public string? lotNo { get; set; }
+        public string? serialNo { get; set; }
+        public string? locationId { get; set; }
+        public string? locationName { get; set; }
+        public string? uomId { get; set; }
+        public string? uomName { get; set; }
+        public bool? isLotNo { get; set; }
+        public bool? isSerialNo { get; set; }
+        public DateTime? mfgDate { get; set; }
+        public DateTime? expireDate { get; set; }
+        public decimal? itemQty { get; set; }
+        public decimal? putawayQty { get; set; }
+        public decimal? itemPrice { get; set; }
+        public string? trackingCode { get; set; }
+    }
+    public class DocIssueDetailResponse
+    {
+        public string? id { get; set; }
+        public string? docId { get; set; }
+        public string? invId { get; set; }
+        public decimal? itemQty { get; set; }
+        public decimal? pickingQty { get; set; }
+        public decimal? returnQty { get; set; }
+        public string? trackingCode { get; set; }
+        public bool? isActive { get; set; } = true;
+        public bool? isDelete { get; set; } = false;
+
+        // Joined from inventory & master
+        public string? itemId { get; set; }
+        public string? itemCode { get; set; }
+        public string? itemName { get; set; }
+        public string? lotNo { get; set; }
+        public string? serialNo { get; set; }
+        public string? locationId { get; set; }
+        public string? locationName { get; set; }
+        public string? uomId { get; set; }
+        public string? uomName { get; set; }
+        public decimal? itemPrice { get; set; }
+        public decimal? availableQty { get; set; }
+        public DateTime? mfgDate { get; set; }
+        public DateTime? expireDate { get; set; }
+        public string? warehouseId { get; set; }
+        public string? warehouseName { get; set; }
+    }
+
 }
 

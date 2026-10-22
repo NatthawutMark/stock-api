@@ -6,7 +6,7 @@ using System.Dynamic;
 using static stock_api.Request.AuthRequest;
 
 
-namespace stock_api.Repositories.Dapper;
+namespace stock_api.Repositories;
 
 public class AuthRepository : IAuthRepository
 {

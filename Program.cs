@@ -2,7 +2,7 @@ using Scalar.AspNetCore;
 
 using System.Data;
 using Npgsql;
-using stock_api.Repositories.Dapper;
+using stock_api.Repositories;
 using stock_api.Interfaces;
 using stock_api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

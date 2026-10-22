@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using stock_api.Interfaces;
-using stock_api.Repositories.Dapper;
+using stock_api.Repositories;
 using static stock_api.Request.AuthRequest;
 using System.Dynamic;
 using static stock_api.Response.AuthRes;

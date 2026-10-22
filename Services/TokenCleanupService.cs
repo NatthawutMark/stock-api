@@ -1,5 +1,5 @@
 using System.Data;
-using stock_api.Repositories.Dapper;
+using stock_api.Repositories;
 
 namespace stock_api.Services;
 

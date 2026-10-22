@@ -25,6 +25,11 @@ public static class TransactionRequest
         public string? warehouseId { get; set; }
         public bool? isActive { get; set; } = true;
         public bool? isDelete { get; set; } = false;
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+
+        // คำนวณจำนวนแถวที่ต้องข้าม (Offset)
+        public int Offset => (Page - 1) * PageSize;
     }
 
     public class DocTransCreateRequest
@@ -48,15 +53,49 @@ public static class TransactionRequest
         public bool? isQualityControl { get; set; } = false;
         public string? createBy { get; set; }
         public string? updateBy { get; set; }
-        public List<DocReceiveDetail> details { get; set; }
+        public List<DocDetailRequest> details { get; set; }
     }
+
+    public class DocDetailRequest
+    {
+        public string? id { get; set; }
+        public string? docId { get; set; }
+        public string? invId { get; set; }
+        public string? itemId { get; set; }
+        public string? itemCode { get; set; }
+        public string? itemName { get; set; }
+        public string? lotNo { get; set; }
+        public string? serialNo { get; set; }
+        public string? locationId { get; set; }
+        public string? locationName { get; set; }
+        public string? uomId { get; set; }
+        public string? uomName { get; set; }
+        public DateTime? mfgDate { get; set; }
+        public DateTime? expireDate { get; set; }
+        public decimal? itemQty { get; set; }
+        public decimal? putawayQty { get; set; }
+        public decimal? itemPrice { get; set; }
+        public decimal? totalPrice { get; set; }
+        public decimal? pickingQty { get; set; }
+        public decimal? returnQty { get; set; }
+        public string? trackingCode { get; set; }
+        public bool? isActive { get; set; } = true;
+        public bool? isDelete { get; set; } = false;
+        public string? createBy { get; set; }
+        public DateTime? createDate { get; set; }
+        public string? updateBy { get; set; }
+        public DateTime? updateDate { get; set; }
+    }
+
 
     public class DocTransUpdateRequest
     {
         public string id { get; set; } = null!;
         public string? docTypeId { get; set; }
+        public string? docNo { get; set; }
         public DateTime? docDate { get; set; }
         public string? refDocNo { get; set; }
+        public string? statusCode { get; set; }
         public string? empId { get; set; }
         public string? vendId { get; set; }
         public string? custId { get; set; }
@@ -84,7 +123,26 @@ public static class TransactionRequest
         public string id { get; set; } = null!;
     }
 
-    public class DocReceiveDetail
+    #region Transaction Type Request
+    public class DocReceiveRequest
+    {
+        public string? id { get; set; }
+        public string? docNo { get; set; }
+        public DateTime? docDate { get; set; }
+        public string? refDocNo { get; set; }
+        public string? empId { get; set; }
+        public string? vendId { get; set; }
+        public string? warehouseId { get; set; }
+        public string? remark { get; set; }
+        public string? menuId { get; set; }
+        public string? docTypeId { get; set; }
+        public string? statusCode { get; set; }
+        public string? updateBy { get; set; }
+        public DateTime? updateDate { get; set; }
+        public List<DocReceiveDetailRequest> details { get; set; }
+    }
+
+    public class DocReceiveDetailRequest
     {
         public string? id { get; set; }
         public string? docId { get; set; }
@@ -111,5 +169,42 @@ public static class TransactionRequest
         public string? updateBy { get; set; }
         public DateTime? updateDate { get; set; }
     }
+
+    public class DocIssueRequest
+    {
+        public string? id { get; set; }
+        public string? docNo { get; set; }
+        public DateTime? docDate { get; set; }
+        public string? refDocNo { get; set; }
+        public string? empId { get; set; }
+        public string? custId { get; set; }
+        public string? warehouseId { get; set; }
+        public string? remark { get; set; }
+        public string? menuId { get; set; }
+        public string? docTypeId { get; set; }
+        public string? statusCode { get; set; }
+        public string? updateBy { get; set; }
+        public DateTime? updateDate { get; set; }
+        public List<DocIssueDetailRequest> details { get; set; }
+    }
+
+    public class DocIssueDetailRequest
+    {
+        public string? id { get; set; }
+        public string? docId { get; set; }
+        public string? invId { get; set; }
+        public decimal? itemQty { get; set; }
+        public decimal? pickingQty { get; set; }
+        public decimal? returnQty { get; set; }
+        public string? trackingCode { get; set; }
+        public bool? isActive { get; set; } = true;
+        public bool? isDelete { get; set; } = false;
+        public string? createBy { get; set; }
+        public DateTime? createDate { get; set; }
+        public string? updateBy { get; set; }
+        public DateTime? updateDate { get; set; }
+    }
+
+    #endregion
 }
 

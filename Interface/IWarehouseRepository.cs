@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using static stock_api.Request.MasterRequest;
-using static stock_api.response.MasterResponse;
+using static stock_api.Response.MasterResponse;
 
 namespace stock_api.Interfaces;
 

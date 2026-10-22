@@ -9,7 +9,7 @@ using stock_api.Interfaces;
 using static stock_api.Request.TransactionRequest;
 using static stock_api.Response.TransactionResponse;
 
-namespace stock_api.Repositories.Dapper;
+namespace stock_api.Repositories;
 
 public class DocTransRepository : IDocTransRepository
 {
@@ -33,22 +33,22 @@ public class DocTransRepository : IDocTransRepository
             dt.doc_type_id AS docTypeId,
             mdt.name AS docTypeName,
             dt.doc_no AS docNo,
-            dt.doc_date AS docDate,
+            cast(dt.doc_date as Date) AS docDate,
             dt.ref_doc_no AS refDocNo,
             dt.emp_id AS empId,
             CONCAT(emp.f_name, ' ', emp.l_name) AS empName,
             dt.vend_id AS vendId,
-            vend.name_th AS vendName,
+            vend.vend_name  AS vendName,
             dt.cust_id AS custId,
-            cust.name_th AS custName,
+            cust.cust_name  AS custName,
             dt.warehouse_id AS warehouseId,
-            wh.name_th AS warehouseName,
+            wh.warehouse_name  AS warehouseName,
             dt.booking_id AS bookingId,
             dt.doc_issue_return_id AS docIssueReturnId,
             dt.transfer_from_warehouse_id AS transferFromWarehouseId,
-            wh_from.name_th AS transferFromWarehouseName,
+            wh_from.warehouse_name  AS transferFromWarehouseName,
             dt.transfer_to_warehouse_id AS transferToWarehouseId,
-            wh_to.name_th AS transferToWarehouseName,
+            wh_to.warehouse_name AS transferToWarehouseName,
             dt.remark,
             dt.is_quality_control AS isQualityControl,
             dt.is_active AS isActive,
@@ -117,7 +117,90 @@ public class DocTransRepository : IDocTransRepository
             sql += " AND dt.doc_date <= @endDate";
         }
 
-        sql += " ORDER BY dt.doc_date DESC, dt.create_date DESC";
+        sql += " ORDER BY dt.update_date DESC, dt.create_date DESC LIMIT @pageSize OFFSET @offset";
+
+        var param = new
+        {
+            isDelete = req?.isDelete ?? false,
+            isActive = req?.isActive,
+            menuId = req?.menuId,
+            docTypeId = req?.docTypeId,
+            statusCode = req?.statusCode,
+            docNoPattern = !string.IsNullOrEmpty(req?.docNo) ? $"%{req.docNo.Trim()}%" : null,
+            empId = req?.empId,
+            vendId = req?.vendId,
+            custId = req?.custId,
+            warehouseId = req?.warehouseId,
+            startDate = req?.startDate,
+            endDate = req?.endDate,
+            pageSize = req?.PageSize,
+            offset = req?.Offset
+        };
+
+        var result = await _connection.QueryAsync<DocTransResponse>(sql, param, transaction: _transaction);
+        return result.ToList();
+    }
+
+    public async Task<int> GetTotal(string? menuId = null)
+    {
+        var sql = "SELECT COUNT(1) FROM doc_trans dt WHERE (dt.is_delete IS NULL OR dt.is_delete = false)";
+
+        if (!string.IsNullOrWhiteSpace(menuId))
+        {
+            sql += " AND dt.menu_id = @menuId";
+        }
+
+        return await _connection.ExecuteScalarAsync<int>(sql, new { menuId = menuId?.Trim() }, transaction: _transaction);
+    }
+
+    public async Task<int> GetTotal(DocTransListRequest req)
+    {
+        var sql = "SELECT COUNT(1) FROM doc_trans dt WHERE dt.is_delete = @isDelete";
+
+        if (req != null && req.isActive.HasValue)
+        {
+            sql += " AND dt.is_active = @isActive";
+        }
+        if (req != null && !string.IsNullOrEmpty(req.menuId))
+        {
+            sql += " AND dt.menu_id = @menuId";
+        }
+        if (req != null && !string.IsNullOrEmpty(req.docTypeId))
+        {
+            sql += " AND dt.doc_type_id = @docTypeId";
+        }
+        if (req != null && !string.IsNullOrEmpty(req.statusCode))
+        {
+            sql += " AND dt.status_code = @statusCode";
+        }
+        if (req != null && !string.IsNullOrEmpty(req.docNo))
+        {
+            sql += " AND (dt.doc_no ILIKE @docNoPattern OR dt.ref_doc_no ILIKE @docNoPattern)";
+        }
+        if (req != null && !string.IsNullOrEmpty(req.empId))
+        {
+            sql += " AND dt.emp_id = @empId";
+        }
+        if (req != null && !string.IsNullOrEmpty(req.vendId))
+        {
+            sql += " AND dt.vend_id = @vendId";
+        }
+        if (req != null && !string.IsNullOrEmpty(req.custId))
+        {
+            sql += " AND dt.cust_id = @custId";
+        }
+        if (req != null && !string.IsNullOrEmpty(req.warehouseId))
+        {
+            sql += " AND dt.warehouse_id = @warehouseId";
+        }
+        if (req != null && req.startDate.HasValue)
+        {
+            sql += " AND dt.doc_date >= @startDate";
+        }
+        if (req != null && req.endDate.HasValue)
+        {
+            sql += " AND dt.doc_date <= @endDate";
+        }
 
         var param = new
         {
@@ -135,8 +218,7 @@ public class DocTransRepository : IDocTransRepository
             endDate = req?.endDate
         };
 
-        var result = await _connection.QueryAsync<DocTransResponse>(sql, param, transaction: _transaction);
-        return result.ToList();
+        return await _connection.ExecuteScalarAsync<int>(sql, param, transaction: _transaction);
     }
 
     public async Task<DocTransResponse?> GetById(string id)
@@ -238,6 +320,8 @@ public class DocTransRepository : IDocTransRepository
         {
             const string updateSql = @"
                 UPDATE doc_trans SET
+                    doc_no = COALESCE(@docNo, doc_no),
+                    status_code = COALESCE(@statusCode, status_code),
                     doc_type_id = COALESCE(@docTypeId, doc_type_id),
                     doc_date = COALESCE(@docDate, doc_date),
                     ref_doc_no = @refDocNo,
@@ -338,6 +422,27 @@ public class DocTransRepository : IDocTransRepository
             return rows > 0
                 ? new OkObjectResult(new { success = true, results = id, message = "Delete DocTrans Success", error = "" })
                 : new BadRequestObjectResult(new { success = false, results = "", message = "Delete DocTrans Failed", error = "Document not found" });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+
+    public async Task<ActionResult> UpdateDocNo(string id, string docNo)
+    {
+        try
+        {
+            const string sql = @"
+                UPDATE doc_trans 
+                SET doc_no = @docNo, 
+                    update_date = CURRENT_TIMESTAMP 
+                WHERE id = @id AND is_delete = false";
+
+            var rows = await _connection.ExecuteAsync(sql, new { id, docNo }, transaction: _transaction);
+            return rows > 0
+                ? new OkObjectResult(new { success = true, results = docNo, message = "Update DocNo Success", error = "" })
+                : new BadRequestObjectResult(new { success = false, results = "", message = "Update DocNo Failed", error = "Document not found" });
         }
         catch (Exception ex)
         {

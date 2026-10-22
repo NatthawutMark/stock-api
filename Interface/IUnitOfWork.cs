@@ -21,6 +21,8 @@ public interface IUnitOfWork : IDisposable
     IItemWarehouseRepository ItemWarehouses { get; }
     IDocTransRepository DocTrans { get; }
     IDocReceiveRepository DocReceives { get; }
+    IDocIssueRepository DocIssue { get; }
+    IInventoriesRepository Inventories { get; }
     // สามารถเพิ่ม Repository อื่นๆ ตรงนี้ได้
     Task<int> CompleteAsync();
 }

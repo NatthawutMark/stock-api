@@ -1,15 +1,10 @@
 using Dapper;
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using stock_api.Interfaces;
 using static stock_api.Request.TransactionRequest;
 using static stock_api.Response.TransactionResponse;
-
-namespace stock_api.Repositories.Dapper;
+namespace stock_api.Repositories;
 
 public class DocReceiveRepository : IDocReceiveRepository
 {
@@ -22,209 +17,85 @@ public class DocReceiveRepository : IDocReceiveRepository
         _transaction = transaction;
     }
 
-    private const string BaseSelectSql = @"
-        SELECT 
-            dt.id,
-            dt.menu_id AS menuId,
-            CONCAT(sm.name_th, '(', sm.name_en, ')') AS menuName,
-            dt.status_code AS statusCode,
-            st.name_th AS statusNameTh,
-            st.name_en AS statusNameEn,
-            dt.doc_type_id AS docTypeId,
-            mdt.name AS docTypeName,
-            dt.doc_no AS docNo,
-            dt.doc_date AS docDate,
-            dt.ref_doc_no AS refDocNo,
-            dt.emp_id AS empId,
-            CONCAT(emp.f_name, ' ', emp.l_name) AS empName,
-            dt.vend_id AS vendId,
-            vend.name_th AS vendName,
-            dt.cust_id AS custId,
-            cust.name_th AS custName,
-            dt.warehouse_id AS warehouseId,
-            wh.name_th AS warehouseName,
-            dt.booking_id AS bookingId,
-            dt.doc_issue_return_id AS docIssueReturnId,
-            dt.transfer_from_warehouse_id AS transferFromWarehouseId,
-            wh_from.name_th AS transferFromWarehouseName,
-            dt.transfer_to_warehouse_id AS transferToWarehouseId,
-            wh_to.name_th AS transferToWarehouseName,
-            dt.remark,
-            dt.is_quality_control AS isQualityControl,
-            dt.is_active AS isActive,
-            dt.is_delete AS isDelete,
-            dt.create_date AS createDate,
-            dt.create_by AS createBy,
-            dt.update_date AS updateDate,
-            dt.update_by AS updateBy
-        FROM doc_trans dt
-        LEFT JOIN sys_menu sm ON dt.menu_id = sm.id
-        LEFT JOIN mast_status st ON dt.status_code = st.code
-        LEFT JOIN mast_doc_type mdt ON dt.doc_type_id = mdt.id
-        LEFT JOIN mast_employee emp ON dt.emp_id = emp.id
-        LEFT JOIN mast_vendor vend ON dt.vend_id = vend.id
-        LEFT JOIN mast_customer cust ON dt.cust_id = cust.id
-        LEFT JOIN mast_warehouse wh ON dt.warehouse_id = wh.id
-        LEFT JOIN mast_warehouse wh_from ON dt.transfer_from_warehouse_id = wh_from.id
-        LEFT JOIN mast_warehouse wh_to ON dt.transfer_to_warehouse_id = wh_to.id";
+    private const string baseSql = @"select 
+                                    rec.id ,
+                                    rec.doc_id as docId,
+                                    rec.item_id as itemId,
+                                    item.item_code as itemCode,
+                                    rec.item_name as itemName,
+                                    rec.lot_no as lotNo,
+                                    rec.serial_no as serialNo,
+                                    rec.location_id as locationId,
+                                    loc.name as locationName,
+                                    rec.uom_id as uomId,
+                                    uom.name as uomName,
+                                    rec.item_qty as itemQty,
+                                    rec.item_price as itemPrice,
+                                    item.is_lotno as isLotNo,
+                                    item.is_serialNo as isSerialNo,
+                                    rec.putaway_qty as putawayQty,
+                                    rec.mfg_date as mfgDate,
+                                    rec.expire_date as expireDate,
+                                    rec.tracking_code as tracking_code
+                                    FROM 
+                                    doc_receive_detail rec
+                                    LEFT JOIN mast_item item on rec.item_id = item.id
+                                    LEFT JOIN mast_uom uom on rec.uom_id = uom.id 
+                                    LEFT JOIN mast_location loc on rec.location_id = loc.id ";
 
-    public async Task<List<DocTransResponse>> List(DocTransListRequest req)
-    {
-        var sql = BaseSelectSql + " WHERE dt.is_delete = @isDelete";
-
-        if (req != null && req.isActive.HasValue)
-        {
-            sql += " AND dt.is_active = @isActive";
-        }
-        if (req != null && !string.IsNullOrEmpty(req.menuId))
-        {
-            sql += " AND dt.menu_id = @menuId";
-        }
-        if (req != null && !string.IsNullOrEmpty(req.docTypeId))
-        {
-            sql += " AND dt.doc_type_id = @docTypeId";
-        }
-        if (req != null && !string.IsNullOrEmpty(req.statusCode))
-        {
-            sql += " AND dt.status_code = @statusCode";
-        }
-        if (req != null && !string.IsNullOrEmpty(req.docNo))
-        {
-            sql += " AND (dt.doc_no ILIKE @docNoPattern OR dt.ref_doc_no ILIKE @docNoPattern)";
-        }
-        if (req != null && !string.IsNullOrEmpty(req.empId))
-        {
-            sql += " AND dt.emp_id = @empId";
-        }
-        if (req != null && !string.IsNullOrEmpty(req.vendId))
-        {
-            sql += " AND dt.vend_id = @vendId";
-        }
-        if (req != null && !string.IsNullOrEmpty(req.custId))
-        {
-            sql += " AND dt.cust_id = @custId";
-        }
-        if (req != null && !string.IsNullOrEmpty(req.warehouseId))
-        {
-            sql += " AND dt.warehouse_id = @warehouseId";
-        }
-        if (req != null && req.startDate.HasValue)
-        {
-            sql += " AND dt.doc_date >= @startDate";
-        }
-        if (req != null && req.endDate.HasValue)
-        {
-            sql += " AND dt.doc_date <= @endDate";
-        }
-
-        sql += " ORDER BY dt.doc_date DESC, dt.create_date DESC";
-
-        var param = new
-        {
-            isDelete = req?.isDelete ?? false,
-            isActive = req?.isActive,
-            menuId = req?.menuId,
-            docTypeId = req?.docTypeId,
-            statusCode = req?.statusCode,
-            docNoPattern = !string.IsNullOrEmpty(req?.docNo) ? $"%{req.docNo.Trim()}%" : null,
-            empId = req?.empId,
-            vendId = req?.vendId,
-            custId = req?.custId,
-            warehouseId = req?.warehouseId,
-            startDate = req?.startDate,
-            endDate = req?.endDate
-        };
-
-        var result = await _connection.QueryAsync<DocTransResponse>(sql, param, transaction: _transaction);
-        return result.ToList();
-    }
-
-    public async Task<DocTransResponse?> GetById(string id)
-    {
-        var sql = BaseSelectSql + " WHERE dt.id = @id AND dt.is_delete = false";
-        var doc = await _connection.QueryFirstOrDefaultAsync<DocTransResponse>(sql, new { id }, transaction: _transaction);
-        if (doc != null)
-        {
-            doc.logs = await GetLogs(id);
-        }
-        return doc;
-    }
-
-    public async Task<DocTransResponse?> GetByDocNo(string docNo)
-    {
-        var sql = BaseSelectSql + " WHERE dt.doc_no = @docNo AND dt.is_delete = false";
-        var doc = await _connection.QueryFirstOrDefaultAsync<DocTransResponse>(sql, new { docNo = docNo.Trim() }, transaction: _transaction);
-        if (doc != null)
-        {
-            doc.logs = await GetLogs(doc.id);
-        }
-        return doc;
-    }
-
-    public async Task<ActionResult> Create(DocTransCreateRequest req)
+    public async Task<List<DocReceiveDetailResponse>> List(DocReceiveDetailRequest req)
     {
         try
         {
-            const string insertDocSql = @"
-                INSERT INTO doc_trans (
-                    id, menu_id, status_code, doc_type_id, doc_no, doc_date, ref_doc_no,
-                    emp_id, vend_id, cust_id, warehouse_id, booking_id, doc_issue_return_id,
-                    transfer_from_warehouse_id, transfer_to_warehouse_id, remark,
-                    is_quality_control, is_active, is_delete, create_date, create_by, update_date, update_by
-                ) VALUES (
-                    @id, @menuId, @statusCode, @docTypeId, @docNo, @docDate, @refDocNo,
-                    @empId, @vendId, @custId, @warehouseId, @bookingId, @docIssueReturnId,
-                    @transferFromWarehouseId, @transferToWarehouseId, @remark,
-                    @isQualityControl, true, false, CURRENT_TIMESTAMP, @createBy, CURRENT_TIMESTAMP, @updateBy
+            string sql = baseSql + "where rec.is_delete = @isDelete";
+            if (!string.IsNullOrEmpty(req.docId))
+                sql += " and rec.doc_id = @docId";
+            var param = new
+            {
+                docId = req.docId,
+                isDelete = req.isDelete
+            };
+            var res = await _connection.QueryAsync<DocReceiveDetailResponse>(sql, param, transaction: _transaction);
+            return res.ToList();
+        }
+        catch (Exception ex)
+        {
+
+            throw new Exception($"Error : {ex.Message}, {ex.InnerException?.Message}");
+        }
+    }
+    public async Task<List<DocReceiveDetailResponse>> getListById(string _id)
+    {
+        try
+        {
+            string sql = baseSql + "where rec.doc_id = @id";
+            var res = await _connection.QueryAsync<DocReceiveDetailResponse>(sql, new { id = _id }, transaction: _transaction);
+            return res.ToList();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error : {ex.Message}, {ex.InnerException?.Message}");
+        }
+    }
+    public async Task<ActionResult> CreateList(List<DocReceiveDetailRequest> req)
+    {
+        try
+        {
+            const string insertDocReceiveSql = @"
+                INSERT INTO public.doc_receive_detail (
+                id, doc_id, item_id, item_name, lot_no,
+                serial_no, location_id, uom_id, mfg_date, expire_date,
+                item_qty,item_price, putaway_qty, create_by, update_by
+                ) 
+                VALUES (
+                @id, @docId, @itemId, @itemName, @lotNo,
+                @serialNo, @locationId,@uomId, @mfgDate, @expireDate,
+                @itemQty, @itemPrice, @putawayQty, @createBy, @updateBy
                 )";
 
-            var rows = await _connection.ExecuteAsync(insertDocSql, new
-            {
-                req.id,
-                req.menuId,
-                statusCode = string.IsNullOrEmpty(req.statusCode) ? "DRAFT" : req.statusCode.ToUpper(),
-                req.docTypeId,
-                req.docNo,
-                docDate = req.docDate ?? DateTime.Now,
-                req.refDocNo,
-                req.empId,
-                req.vendId,
-                req.custId,
-                req.warehouseId,
-                req.bookingId,
-                req.docIssueReturnId,
-                req.transferFromWarehouseId,
-                req.transferToWarehouseId,
-                req.remark,
-                req.isQualityControl,
-                req.createBy,
-                updateBy = req.createBy
-            }, transaction: _transaction);
+            var rows = await _connection.ExecuteAsync(insertDocReceiveSql, req, transaction: _transaction);
 
-            if (rows > 0)
-            {
-                // บันทึก Log สร้างเอกสาร
-                const string insertLogSql = @"
-                    INSERT INTO doc_trans_log (
-                        id, doc_id, from_status_id, to_status_id, from_user_id, to_user_id, remark,
-                        is_active, is_delete, create_date, create_by, update_date, update_by
-                    ) VALUES (
-                        @logId, @docId, NULL, @toStatusId, @userId, @userId, 'สร้างเอกสาร',
-                        true, false, CURRENT_TIMESTAMP, @userId, CURRENT_TIMESTAMP, @userId
-                    )";
-
-                await _connection.ExecuteAsync(insertLogSql, new
-                {
-                    logId = Guid.NewGuid().ToString().ToUpper().Replace("-", ""),
-                    docId = req.id,
-                    toStatusId = string.IsNullOrEmpty(req.statusCode) ? "DRAFT" : req.statusCode,
-                    userId = req.createBy
-                }, transaction: _transaction);
-
-                return new OkObjectResult(new { success = true, results = req.id, message = "Create DocReceive Success", error = "" });
-            }
-
-            return new BadRequestObjectResult(new { success = false, results = "", message = "Create DocReceive Failed", error = "" });
+            return new OkObjectResult(new { success = false, results = "", message = "Create DocReceive Failed", error = "" });
         }
         catch (Exception ex)
         {
@@ -232,34 +103,224 @@ public class DocReceiveRepository : IDocReceiveRepository
         }
     }
 
-    public async Task<ActionResult> Update(DocTransUpdateRequest req)
+    public async Task<ActionResult> Update(string id, List<DocReceiveDetailRequest> req)
     {
         try
         {
+            string delItems = @"DELETE FROM doc_receive_detail where doc_id = @id";
+            await _connection.QueryAsync(delItems, new { id }, _transaction);
+
             const string updateSql = @"
-                UPDATE doc_trans SET
-                    doc_type_id = COALESCE(@docTypeId, doc_type_id),
-                    doc_date = COALESCE(@docDate, doc_date),
-                    ref_doc_no = @refDocNo,
-                    emp_id = @empId,
-                    vend_id = @vendId,
-                    cust_id = @custId,
-                    warehouse_id = @warehouseId,
-                    booking_id = @bookingId,
-                    doc_issue_return_id = @docIssueReturnId,
-                    transfer_from_warehouse_id = @transferFromWarehouseId,
-                    transfer_to_warehouse_id = @transferToWarehouseId,
-                    remark = @remark,
-                    is_quality_control = COALESCE(@isQualityControl, is_quality_control),
-                    is_active = COALESCE(@isActive, is_active),
-                    update_date = CURRENT_TIMESTAMP,
-                    update_by = @updateBy
-                WHERE id = @id AND is_delete = false";
+                INSERT INTO doc_receive_detail (
+                id, doc_id, item_id, item_name, lot_no,
+                serial_no, location_id, uom_id, mfg_date, expire_date,
+                item_qty,item_price, putaway_qty, create_by, update_by
+                ) 
+                VALUES (
+                @id, @docId, @itemId, @itemName, coalesce(@lotNo,NULL),
+                @serialNo, @locationId,@uomId, @mfgDate, @expireDate,
+                @itemQty, @itemPrice, @putawayQty, @createBy, @updateBy
+                )";
 
             var rows = await _connection.ExecuteAsync(updateSql, req, transaction: _transaction);
             return rows > 0
-                ? new OkObjectResult(new { success = true, results = req.id, message = "Update DocReceive Success", error = "" })
+                ? new OkObjectResult(new { success = true, results = id, message = "Update DocReceive Success", error = "" })
                 : new BadRequestObjectResult(new { success = false, results = "", message = "Update DocReceive Failed", error = "Document not found or deleted" });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+    public async Task<ActionResult> Confirm(string id)
+    {
+        try
+        {
+            string updateDetail = @"UPDATE doc_receive_detail set putaway_qty = 0 where doc_id = @id";
+            await _connection.ExecuteAsync(updateDetail, new { id }, _transaction);
+
+            string updateSql = @"UPDATE doc_trans set STATUS_CODE = 'CONFIRM' where id = @id";
+
+            var rows = await _connection.ExecuteAsync(updateSql, new { id }, transaction: _transaction);
+            return rows > 0
+                ? new OkObjectResult(new { success = true, results = id, message = "Update DocReceive Success", error = "" })
+                : new BadRequestObjectResult(new { success = false, results = "", message = "Update DocReceive Failed", error = "Document not found or deleted" });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+    public async Task<ActionResult> Putaway(string _id, string? userId = null)
+    {
+        try
+        {
+            string user = !string.IsNullOrEmpty(userId) ? userId : "system";
+
+            // 1. ตรวจสอบเอกสาร doc_trans และดึง warehouse_id รวมถึงสถานะปัจจุบัน
+            var docTrans = await _connection.QueryFirstOrDefaultAsync<DocTransResponse>(
+                "SELECT id, warehouse_id AS warehouseId, status_code AS statusCode FROM doc_trans WHERE id = @id AND (is_delete IS NULL OR is_delete = false)",
+                new { id = _id },
+                transaction: _transaction);
+
+            if (docTrans == null)
+            {
+                return new BadRequestObjectResult(new { success = false, results = "", message = "Document not found", error = "Document not found or deleted" });
+            }
+
+            if (string.IsNullOrEmpty(docTrans.warehouseId))
+            {
+                return new BadRequestObjectResult(new { success = false, results = "", message = "Warehouse not specified in document", error = "warehouse_id is required in doc_trans" });
+            }
+
+            // 2. ตรวจสอบรายการที่ต้องทำการ Putaway (item_qty > putaway_qty)
+            string sqlCheckItems = baseSql + "WHERE rec.doc_id = @id AND (rec.is_delete IS NULL OR rec.is_delete = false) AND (rec.item_qty - COALESCE(rec.putaway_qty, 0)) > 0";
+            var res = await _connection.QueryAsync<DocReceiveDetailResponse>(sqlCheckItems, new { id = _id }, transaction: _transaction);
+            if (res == null || !res.Any())
+            {
+                return new BadRequestObjectResult(new { success = false, results = "", message = "Can't Find Item", error = "No items left to putaway" });
+            }
+
+            // 3. ดำเนินการ MERGE เข้าสู่ตาราง inventory
+            // นำ warehouse_id จาก doc_trans มาร่วมเป็น source
+            const string sqlPutaway = @"
+                MERGE INTO inventory AS target
+                USING (
+                    SELECT 
+                        rec.item_id,
+                        rec.lot_no,
+                        rec.serial_no,
+                        rec.location_id,
+                        dt.warehouse_id,
+                        rec.uom_id,
+                        rec.mfg_date,
+                        rec.expire_date,
+                        NULLIF(rec.item_price, '')::numeric AS item_price,
+                        rec.tracking_code,
+                        SUM(rec.item_qty - COALESCE(rec.putaway_qty, 0)) AS qty_to_putaway
+                    FROM doc_receive_detail rec
+                    INNER JOIN doc_trans dt ON rec.doc_id = dt.id
+                    WHERE rec.doc_id = @id 
+                      AND (rec.is_delete IS NULL OR rec.is_delete = false)
+                      AND (rec.item_qty - COALESCE(rec.putaway_qty, 0)) > 0
+                    GROUP BY 
+                        rec.item_id,
+                        rec.lot_no,
+                        rec.serial_no,
+                        rec.location_id,
+                        dt.warehouse_id,
+                        rec.uom_id,
+                        rec.mfg_date,
+                        rec.expire_date,
+                        NULLIF(rec.item_price, '')::numeric,
+                        rec.tracking_code
+                ) AS source
+                ON target.item_id = source.item_id
+                   AND target.warehouse_id = source.warehouse_id
+                   AND target.location_id IS NOT DISTINCT FROM source.location_id
+                   AND target.lot_no IS NOT DISTINCT FROM source.lot_no
+                   AND target.serial_no IS NOT DISTINCT FROM source.serial_no
+                   AND target.mfg_date IS NOT DISTINCT FROM source.mfg_date
+                   AND target.expire_date IS NOT DISTINCT FROM source.expire_date
+                   AND target.item_price IS NOT DISTINCT FROM source.item_price
+                   AND (target.is_delete IS NULL OR target.is_delete = false)
+                WHEN MATCHED THEN
+                    UPDATE SET 
+                        item_qty = COALESCE(target.item_qty, 0) + source.qty_to_putaway,
+                        update_date = CURRENT_TIMESTAMP,
+                        update_by = @userId
+                WHEN NOT MATCHED THEN
+                    INSERT (
+                        id,
+                        warehouse_id,
+                        location_id,
+                        item_id,
+                        lot_no,
+                        serial_no,
+                        uom_id,
+                        item_price,
+                        item_qty,
+                        mfg_date,
+                        expire_date,
+                        tracking_code,
+                        is_active,
+                        is_delete,
+                        create_date,
+                        create_by,
+                        update_date,
+                        update_by
+                    ) VALUES (
+                        UPPER(REPLACE(gen_random_uuid()::text, '-', '')),
+                        source.warehouse_id,
+                        source.location_id,
+                        source.item_id,
+                        source.lot_no,
+                        source.serial_no,
+                        source.uom_id,
+                        source.item_price,
+                        source.qty_to_putaway,
+                        source.mfg_date,
+                        source.expire_date,
+                        source.tracking_code,
+                        true,
+                        false,
+                        CURRENT_TIMESTAMP,
+                        @userId,
+                        CURRENT_TIMESTAMP,
+                        @userId
+                    );
+            ";
+
+            await _connection.ExecuteAsync(sqlPutaway, new { id = _id, userId = user }, transaction: _transaction);
+
+            // 4. ปรับปรุง putaway_qty ใน doc_receive_detail ให้เท่ากับ item_qty
+            const string updateDetailSql = @"
+                UPDATE doc_receive_detail 
+                SET putaway_qty = item_qty,
+                    update_date = CURRENT_TIMESTAMP,
+                    update_by = @userId
+                WHERE doc_id = @id 
+                  AND (is_delete IS NULL OR is_delete = false);";
+
+            await _connection.ExecuteAsync(updateDetailSql, new { id = _id, userId = user }, transaction: _transaction);
+
+            // 5. ปรับปรุงสถานะของ doc_trans เป็น COMPLETED
+            const string updateTransSql = @"
+                UPDATE doc_trans 
+                SET status_code = 'COMPLETED',
+                    update_date = CURRENT_TIMESTAMP,
+                    update_by = @userId
+                WHERE id = @id 
+                  AND (is_delete IS NULL OR is_delete = false);";
+
+            var rows = await _connection.ExecuteAsync(updateTransSql, new { id = _id, userId = user }, transaction: _transaction);
+
+            if (rows > 0)
+            {
+                // 6. บันทึก Transaction Log
+                const string insertLogSql = @"
+                    INSERT INTO doc_trans_log (
+                        id, doc_id, from_status_id, to_status_id, from_user_id, to_user_id, remark,
+                        is_active, is_delete, create_date, create_by, update_date, update_by
+                    ) VALUES (
+                        @logId, @docId, @fromStatusId, @toStatusId, @userId, @userId, @remark,
+                        true, false, CURRENT_TIMESTAMP, @userId, CURRENT_TIMESTAMP, @userId
+                    );";
+
+                await _connection.ExecuteAsync(insertLogSql, new
+                {
+                    logId = Guid.NewGuid().ToString().ToUpper().Replace("-", ""),
+                    docId = _id,
+                    fromStatusId = docTrans.statusCode,
+                    toStatusId = "COMPLETED",
+                    userId = user,
+                    remark = "Putaway completed - stock updated to inventory"
+                }, transaction: _transaction);
+
+                return new OkObjectResult(new { success = true, results = _id, message = "Putaway DocReceive Success", error = "" });
+            }
+
+            return new BadRequestObjectResult(new { success = false, results = "", message = "Putaway DocReceive Failed", error = "Document not found or update failed" });
         }
         catch (Exception ex)
         {

@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace stock_api.response;
+namespace stock_api.Response;
 
 public class MasterResponse
 {

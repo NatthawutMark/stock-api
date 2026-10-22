@@ -15,6 +15,9 @@ public interface IDocTransRepository
     Task<ActionResult> Update(DocTransUpdateRequest req);
     Task<ActionResult> UpdateStatus(DocTransUpdateStatusRequest req, string userId);
     Task<ActionResult> Delete(string id, string userId);
+    Task<ActionResult> UpdateDocNo(string id, string docNo);
     Task<List<DocTransLogResponse>> GetLogs(string docId);
+    Task<int> GetTotal(string? menuId = null);
+    Task<int> GetTotal(DocTransListRequest req);
 }
 

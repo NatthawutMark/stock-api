@@ -3,7 +3,7 @@ using System.Data;
 using stock_api.Interfaces;
 using stock_api.Request;
 
-namespace stock_api.Repositories.Dapper;
+namespace stock_api.Repositories;
 
 public class SystemMenuRepository : ISystemMenuRepository
 {

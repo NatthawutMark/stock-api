@@ -1,7 +1,7 @@
 using System.Data;
 using stock_api.Interfaces;
 
-namespace stock_api.Repositories.Dapper;
+namespace stock_api.Repositories;
 
 public class UnitOfWork : IUnitOfWork
 {
@@ -27,6 +27,8 @@ public class UnitOfWork : IUnitOfWork
     public IItemWarehouseRepository ItemWarehouses { get; private set; }
     public IDocTransRepository DocTrans { get; private set; }
     public IDocReceiveRepository DocReceives { get; private set; }
+    public IDocIssueRepository DocIssue { get; private set; }
+    public IInventoriesRepository Inventories { get; private set; }
     public UnitOfWork(IDbConnection context, ISystemService systemService)
     {
         _connection = context;
@@ -52,6 +54,8 @@ public class UnitOfWork : IUnitOfWork
         ItemWarehouses = new ItemWarehouseRepository(_connection, _transaction);
         DocTrans = new DocTransRepository(_connection, _transaction);
         DocReceives = new DocReceiveRepository(_connection, _transaction);
+        DocIssue = new DocIssueRepository(_connection, _transaction);
+        Inventories = new InventoriesRepository(_connection, _transaction);
     }
 
     public async Task<int> CompleteAsync()

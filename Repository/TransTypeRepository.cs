@@ -3,10 +3,10 @@ using System.Data;
 using stock_api.Interfaces;
 
 using static stock_api.Request.MasterRequest;
-using static stock_api.response.MasterResponse;
+using static stock_api.Response.MasterResponse;
 using Microsoft.AspNetCore.Mvc;
 
-namespace stock_api.Repositories.Dapper;
+namespace stock_api.Repositories;
 
 public class TransTypeRepository : ITransTypeRepository
 {

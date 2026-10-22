@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
-using stock_api.Repositories.Dapper;
+using stock_api.Repositories;
 using stock_api.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using static stock_api.Request.MasterRequest;
-using static stock_api.response.MasterResponse;
+using static stock_api.Response.MasterResponse;
 using static stock_api.Response.AuthRes;
 
 namespace stock_api.Controllers;
