@@ -107,13 +107,14 @@ public class InventoriesRepository : IInventoriesRepository
         issue as (
         	select 
         	iss.inv_id as invId,
-        	iss.item_qty as itemQty,
-        	coalesce(iss.picking_qty,0) as pickingQty,
-        	coalesce(iss.item_qty,0) - coalesce(iss.picking_qty ,0) as remainQty
+        	sum(iss.item_qty) as itemQty,
+        	sum(coalesce(iss.picking_qty,0)) as pickingQty,
+        	sum(coalesce(iss.item_qty,0)) - sum(coalesce(iss.picking_qty ,0)) as remainQty
         	from doc_trans doc
         	left join doc_issue_detail iss on doc.id  = iss.doc_id 
         	where doc.menu_id = @menuId 
-            {(!string.IsNullOrEmpty(req.docId) ? " AND doc.id <> @docId" : "")}
+            {(!string.IsNullOrEmpty(req.docId) ? " AND doc.id <> @docId " : "")}
+            group by iss.inv_id
         )
 
         select 

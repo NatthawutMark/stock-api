@@ -182,7 +182,7 @@ public class DocIssueController : ControllerBase
                 {
                     details.Add(new DocIssueDetailRequest
                     {
-                        id = string.IsNullOrEmpty(item.id) ? _systemService.GenGUID() : item.id,
+                        id = _systemService.GenGUID(),
                         docId = id,
                         invId = item.invId,
                         itemQty = item.itemQty,
