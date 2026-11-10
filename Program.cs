@@ -35,7 +35,8 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // ระบุ URL ของหน้าบ้าน
+        // policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // ระบุ URL ของหน้าบ้าน
+        policy.SetIsOriginAllowed(origin => true) // ระบุ URL ของหน้าบ้าน
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // ใส่เพิ่มหากมีการส่ง Cookie หรือ Credentials
