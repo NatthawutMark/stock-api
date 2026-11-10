@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  stock-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-api-app
+    ports:
+      - "8080:8080" # เข้าใช้งานผ่าน http://localhost:8080
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development # สำคัญ: เปิดเพื่อให้ Scalar API / OpenAPI ทำงานใน Docker
+      - ASPNETCORE_HTTP_PORTS=8080
+      # หากต้องการ override ConnectionString ผ่าน docker-compose:
+      # - ConnectionStrings__DefaultConnection=Host=aws-0-ap-northeast-2.pooler.supabase.com:6543;Database=postgres;...
+    restart: unless-stopped

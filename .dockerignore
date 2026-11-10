@@ -1,0 +1,10 @@
+**/.git
+**/.vscode
+**/.local
+**/bin
+**/obj
+**/node_modules
+**/.DS_Store
+*.user
+*.suo
+appsettings.Development.json
