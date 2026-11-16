@@ -27,7 +27,8 @@ public class DocTransRepository : IDocTransRepository
             dt.id,
             dt.menu_id AS menuId,
             CONCAT(sm.name_th, '(', sm.name_en, ')') AS menuName,
-            dt.status_code AS statusCode,
+            dt.status_id AS statusId,
+            COALESCE(st.code, dt.status_code) AS statusCode,
             st.name_th AS statusNameTh,
             st.name_en AS statusNameEn,
             dt.doc_type_id AS docTypeId,
@@ -59,7 +60,7 @@ public class DocTransRepository : IDocTransRepository
             dt.update_by AS updateBy
         FROM doc_trans dt
         LEFT JOIN sys_menu sm ON dt.menu_id = sm.id
-        LEFT JOIN mast_status st ON dt.status_code = st.code
+        LEFT JOIN mast_status st ON (dt.status_id = st.id OR (dt.status_id IS NULL AND dt.status_code = st.code))
         LEFT JOIN mast_doc_type mdt ON dt.doc_type_id = mdt.id
         LEFT JOIN mast_employee emp ON dt.emp_id = emp.id
         LEFT JOIN mast_vendor vend ON dt.vend_id = vend.id
@@ -84,9 +85,13 @@ public class DocTransRepository : IDocTransRepository
         {
             sql += " AND dt.doc_type_id = @docTypeId";
         }
+        if (req != null && !string.IsNullOrEmpty(req.statusId))
+        {
+            sql += " AND dt.status_id = @statusId";
+        }
         if (req != null && !string.IsNullOrEmpty(req.statusCode))
         {
-            sql += " AND dt.status_code = @statusCode";
+            sql += " AND (dt.status_code = @statusCode OR st.code = @statusCode)";
         }
         if (req != null && !string.IsNullOrEmpty(req.docNo))
         {
@@ -125,6 +130,7 @@ public class DocTransRepository : IDocTransRepository
             isActive = req?.isActive,
             menuId = req?.menuId,
             docTypeId = req?.docTypeId,
+            statusId = req?.statusId,
             statusCode = req?.statusCode,
             docNoPattern = !string.IsNullOrEmpty(req?.docNo) ? $"%{req.docNo.Trim()}%" : null,
             empId = req?.empId,
@@ -155,7 +161,10 @@ public class DocTransRepository : IDocTransRepository
 
     public async Task<int> GetTotal(DocTransListRequest req)
     {
-        var sql = "SELECT COUNT(1) FROM doc_trans dt WHERE dt.is_delete = @isDelete";
+        var sql = @"SELECT COUNT(1) 
+                    FROM doc_trans dt 
+                    LEFT JOIN mast_status st ON (dt.status_id = st.id OR (dt.status_id IS NULL AND dt.status_code = st.code))
+                    WHERE dt.is_delete = @isDelete";
 
         if (req != null && req.isActive.HasValue)
         {
@@ -169,9 +178,13 @@ public class DocTransRepository : IDocTransRepository
         {
             sql += " AND dt.doc_type_id = @docTypeId";
         }
+        if (req != null && !string.IsNullOrEmpty(req.statusId))
+        {
+            sql += " AND dt.status_id = @statusId";
+        }
         if (req != null && !string.IsNullOrEmpty(req.statusCode))
         {
-            sql += " AND dt.status_code = @statusCode";
+            sql += " AND (dt.status_code = @statusCode OR st.code = @statusCode)";
         }
         if (req != null && !string.IsNullOrEmpty(req.docNo))
         {
@@ -208,6 +221,7 @@ public class DocTransRepository : IDocTransRepository
             isActive = req?.isActive,
             menuId = req?.menuId,
             docTypeId = req?.docTypeId,
+            statusId = req?.statusId,
             statusCode = req?.statusCode,
             docNoPattern = !string.IsNullOrEmpty(req?.docNo) ? $"%{req.docNo.Trim()}%" : null,
             empId = req?.empId,
@@ -247,14 +261,39 @@ public class DocTransRepository : IDocTransRepository
     {
         try
         {
+            string? statusId = req.statusId;
+            string? statusCode = req.statusCode;
+
+            if (string.IsNullOrEmpty(statusId) && !string.IsNullOrEmpty(statusCode))
+            {
+                statusId = await _connection.QueryFirstOrDefaultAsync<string>(
+                    "SELECT id FROM mast_status WHERE code = @code AND is_delete = false LIMIT 1",
+                    new { code = statusCode.ToUpper() }, transaction: _transaction);
+            }
+            else if (!string.IsNullOrEmpty(statusId) && string.IsNullOrEmpty(statusCode))
+            {
+                statusCode = await _connection.QueryFirstOrDefaultAsync<string>(
+                    "SELECT code FROM mast_status WHERE id = @id AND is_delete = false LIMIT 1",
+                    new { id = statusId }, transaction: _transaction);
+            }
+
+            if (string.IsNullOrEmpty(statusId) && string.IsNullOrEmpty(statusCode))
+            {
+                var defaultStatus = await _connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "SELECT id, code FROM mast_status WHERE code = 'DRAFT' AND is_delete = false LIMIT 1",
+                    transaction: _transaction);
+                statusId = defaultStatus?.id;
+                statusCode = defaultStatus?.code ?? "DRAFT";
+            }
+
             const string insertDocSql = @"
                 INSERT INTO doc_trans (
-                    id, menu_id, status_code, doc_type_id, doc_no, doc_date, ref_doc_no,
+                    id, menu_id, status_id, status_code, doc_type_id, doc_no, doc_date, ref_doc_no,
                     emp_id, vend_id, cust_id, warehouse_id, booking_id, doc_issue_return_id,
                     transfer_from_warehouse_id, transfer_to_warehouse_id, remark,
                     is_quality_control, is_active, is_delete, create_date, create_by, update_date, update_by
                 ) VALUES (
-                    @id, @menuId, @statusCode, @docTypeId, @docNo, @docDate, @refDocNo,
+                    @id, @menuId, @statusId, @statusCode, @docTypeId, @docNo, @docDate, @refDocNo,
                     @empId, @vendId, @custId, @warehouseId, @bookingId, @docIssueReturnId,
                     @transferFromWarehouseId, @transferToWarehouseId, @remark,
                     @isQualityControl, true, false, CURRENT_TIMESTAMP, @createBy, CURRENT_TIMESTAMP, @updateBy
@@ -264,7 +303,8 @@ public class DocTransRepository : IDocTransRepository
             {
                 req.id,
                 req.menuId,
-                statusCode = string.IsNullOrEmpty(req.statusCode) ? "DRAFT" : req.statusCode.ToUpper(),
+                statusId,
+                statusCode,
                 req.docTypeId,
                 req.docNo,
                 docDate = req.docDate ?? DateTime.Now,
@@ -285,7 +325,7 @@ public class DocTransRepository : IDocTransRepository
 
             if (rows > 0)
             {
-                // บันทึก Log สร้างเอกสาร
+                // บันทึก Log สร้างเอกสาร (ใช้ status_id)
                 const string insertLogSql = @"
                     INSERT INTO doc_trans_log (
                         id, doc_id, from_status_id, to_status_id, from_user_id, to_user_id, remark,
@@ -299,7 +339,7 @@ public class DocTransRepository : IDocTransRepository
                 {
                     logId = Guid.NewGuid().ToString().ToUpper().Replace("-", ""),
                     docId = req.id,
-                    toStatusId = string.IsNullOrEmpty(req.statusCode) ? "DRAFT" : req.statusCode,
+                    toStatusId = statusId,
                     userId = req.createBy
                 }, transaction: _transaction);
 
@@ -321,7 +361,8 @@ public class DocTransRepository : IDocTransRepository
             const string updateSql = @"
                 UPDATE doc_trans SET
                     doc_no = COALESCE(@docNo, doc_no),
-                    status_code = COALESCE(@statusCode, status_code),
+                    status_id = COALESCE(@statusId, (SELECT id FROM mast_status WHERE code = @statusCode AND is_delete = false LIMIT 1), status_id),
+                    status_code = COALESCE(@statusCode, (SELECT code FROM mast_status WHERE id = @statusId AND is_delete = false LIMIT 1), status_code),
                     doc_type_id = COALESCE(@docTypeId, doc_type_id),
                     doc_date = COALESCE(@docDate, doc_date),
                     ref_doc_no = @refDocNo,
@@ -355,9 +396,9 @@ public class DocTransRepository : IDocTransRepository
     {
         try
         {
-            // ดึงสถานะปัจจุบัน
-            var currentStatus = await _connection.QueryFirstOrDefaultAsync<string>(
-                "SELECT status_code FROM doc_trans WHERE id = @docId AND is_delete = false",
+            // ดึงสถานะปัจจุบัน ทั้ง id และ code
+            var currentStatus = await _connection.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT dt.status_id as statusid, dt.status_code as statuscode FROM doc_trans dt WHERE dt.id = @docId AND dt.is_delete = false",
                 new { req.docId }, transaction: _transaction);
 
             if (currentStatus == null)
@@ -365,18 +406,30 @@ public class DocTransRepository : IDocTransRepository
                 return new BadRequestObjectResult(new { success = false, results = "", message = "Document not found", error = "" });
             }
 
+            string? currentStatusId = (string?)currentStatus.statusid;
+
             const string updateSql = @"
                 UPDATE doc_trans 
-                SET status_code = @statusCode, 
+                SET status_id = COALESCE(@statusId, (SELECT id FROM mast_status WHERE code = @statusCode AND is_delete = false LIMIT 1), status_id),
+                    status_code = COALESCE(@statusCode, (SELECT code FROM mast_status WHERE id = @statusId AND is_delete = false LIMIT 1), status_code),
                     update_date = CURRENT_TIMESTAMP, 
                     update_by = @userId 
                 WHERE id = @docId AND is_delete = false";
 
-            var rows = await _connection.ExecuteAsync(updateSql, new { req.statusCode, userId, req.docId }, transaction: _transaction);
+            var rows = await _connection.ExecuteAsync(updateSql, new { req.statusId, req.statusCode, userId, req.docId }, transaction: _transaction);
 
             if (rows > 0)
             {
-                // บันทึก Log เปลี่ยนสถานะ
+                // ดึง status_id และ status_code ใหม่หลังอัปเดตเพื่อบันทึก log และข้อความตอบกลับ
+                var newStatus = await _connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "SELECT dt.status_id as statusid, dt.status_code as statuscode, ms.name_th as nameth FROM doc_trans dt LEFT JOIN mast_status ms ON dt.status_id = ms.id WHERE dt.id = @docId",
+                    new { req.docId }, transaction: _transaction);
+
+                string? newStatusId = (string?)newStatus?.statusid;
+                string? newStatusCode = (string?)newStatus?.statuscode ?? req.statusCode;
+                string? newStatusName = (string?)newStatus?.nameth;
+
+                // บันทึก Log เปลี่ยนสถานะ (ใช้ status_id)
                 const string insertLogSql = @"
                     INSERT INTO doc_trans_log (
                         id, doc_id, from_status_id, to_status_id, from_user_id, to_user_id, remark,
@@ -390,13 +443,13 @@ public class DocTransRepository : IDocTransRepository
                 {
                     logId = Guid.NewGuid().ToString().ToUpper().Replace("-", ""),
                     docId = req.docId,
-                    fromStatusId = currentStatus,
-                    toStatusId = req.statusCode,
+                    fromStatusId = currentStatusId,
+                    toStatusId = newStatusId,
                     userId = userId,
-                    remark = req.remark ?? $"เปลี่ยนสถานะเป็น {req.statusCode}"
+                    remark = req.remark ?? $"เปลี่ยนสถานะเป็น {newStatusName ?? newStatusCode}"
                 }, transaction: _transaction);
 
-                return new OkObjectResult(new { success = true, results = req.docId, message = $"Update status to {req.statusCode} Success", error = "" });
+                return new OkObjectResult(new { success = true, results = req.docId, message = $"Update status to {newStatusCode} Success", error = "" });
             }
 
             return new BadRequestObjectResult(new { success = false, results = "", message = "Update status Failed", error = "" });
@@ -457,8 +510,10 @@ public class DocTransRepository : IDocTransRepository
                 dtl.id,
                 dtl.doc_id AS docId,
                 dtl.from_status_id AS fromStatusId,
+                st_from.code AS fromStatusCode,
                 st_from.name_th AS fromStatusName,
                 dtl.to_status_id AS toStatusId,
+                st_to.code AS toStatusCode,
                 st_to.name_th AS toStatusName,
                 dtl.from_user_id AS fromUserId,
                 dtl.to_user_id AS toUserId,
@@ -466,8 +521,8 @@ public class DocTransRepository : IDocTransRepository
                 dtl.create_date AS createDate,
                 dtl.create_by AS createBy
             FROM doc_trans_log dtl
-            LEFT JOIN mast_status st_from ON dtl.from_status_id = st_from.code
-            LEFT JOIN mast_status st_to ON dtl.to_status_id = st_to.code
+            LEFT JOIN mast_status st_from ON (dtl.from_status_id = st_from.id OR dtl.from_status_id = st_from.code)
+            LEFT JOIN mast_status st_to ON (dtl.to_status_id = st_to.id OR dtl.to_status_id = st_to.code)
             WHERE dtl.doc_id = @docId AND dtl.is_delete = false
             ORDER BY dtl.create_date ASC";
 

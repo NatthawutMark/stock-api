@@ -157,7 +157,12 @@ public class DocIssueRepository : IDocIssueRepository
             string updateDetail = @"UPDATE doc_issue_detail SET picking_qty = 0 WHERE doc_id = @id";
             await _connection.ExecuteAsync(updateDetail, new { id }, transaction: _transaction);
 
-            string updateSql = @"UPDATE doc_trans SET status_code = 'CONFIRM', update_date = CURRENT_TIMESTAMP WHERE id = @id";
+            string updateSql = @"
+                UPDATE doc_trans 
+                SET status_id = (SELECT id FROM mast_status WHERE code = 'CONFIRM' AND is_delete = false LIMIT 1),
+                    status_code = 'CONFIRM',
+                    update_date = CURRENT_TIMESTAMP 
+                WHERE id = @id";
             var rows = await _connection.ExecuteAsync(updateSql, new { id }, transaction: _transaction);
 
             return rows > 0
@@ -178,7 +183,7 @@ public class DocIssueRepository : IDocIssueRepository
 
             // 1. ตรวจสอบเอกสาร doc_trans
             var docTrans = await _connection.QueryFirstOrDefaultAsync<DocTransResponse>(
-                "SELECT id, warehouse_id AS warehouseId, status_code AS statusCode FROM doc_trans WHERE id = @id AND (is_delete IS NULL OR is_delete = false)",
+                "SELECT id, warehouse_id AS warehouseId, status_id AS statusId, status_code AS statusCode FROM doc_trans WHERE id = @id AND (is_delete IS NULL OR is_delete = false)",
                 new { id = _id },
                 transaction: _transaction);
 
@@ -237,7 +242,8 @@ public class DocIssueRepository : IDocIssueRepository
             // 5. ปรับปรุงสถานะของ doc_trans เป็น COMPLETED
             const string updateTransSql = @"
                 UPDATE doc_trans 
-                SET status_code = 'COMPLETED',
+                SET status_id = (SELECT id FROM mast_status WHERE code = 'COMPLETED' AND is_delete = false LIMIT 1),
+                    status_code = 'COMPLETED',
                     update_date = CURRENT_TIMESTAMP,
                     update_by = @userId
                 WHERE id = @id 
@@ -247,6 +253,10 @@ public class DocIssueRepository : IDocIssueRepository
 
             if (rows > 0)
             {
+                var completedStatusId = await _connection.QueryFirstOrDefaultAsync<string>(
+                    "SELECT id FROM mast_status WHERE code = 'COMPLETED' AND is_delete = false LIMIT 1",
+                    transaction: _transaction);
+
                 // 6. บันทึก Transaction Log
                 const string insertLogSql = @"
                     INSERT INTO doc_trans_log (
@@ -261,8 +271,8 @@ public class DocIssueRepository : IDocIssueRepository
                 {
                     logId = Guid.NewGuid().ToString().ToUpper().Replace("-", ""),
                     docId = _id,
-                    fromStatusId = docTrans.statusCode,
-                    toStatusId = "COMPLETED",
+                    fromStatusId = docTrans.statusId,
+                    toStatusId = completedStatusId,
                     userId = user,
                     remark = "Picking completed - stock deducted from inventory"
                 }, transaction: _transaction);

@@ -14,6 +14,7 @@ public static class TransactionRequest
     {
         public string? menuId { get; set; }
         public string? docTypeId { get; set; }
+        public string? statusId { get; set; }
         public string? statusCode { get; set; }
         public string? docNo { get; set; }
         public string? refDocNo { get; set; }
@@ -37,6 +38,7 @@ public static class TransactionRequest
         public string? id { get; set; }
         public string? menuId { get; set; } = null!;
         public string? docTypeId { get; set; } = null!;
+        public string? statusId { get; set; }
         public string? statusCode { get; set; } = "DRAFT";
         public string? docNo { get; set; }
         public DateTime? docDate { get; set; } = DateTime.Now;
@@ -95,6 +97,7 @@ public static class TransactionRequest
         public string? docNo { get; set; }
         public DateTime? docDate { get; set; }
         public string? refDocNo { get; set; }
+        public string? statusId { get; set; }
         public string? statusCode { get; set; }
         public string? empId { get; set; }
         public string? vendId { get; set; }
@@ -113,7 +116,8 @@ public static class TransactionRequest
     public class DocTransUpdateStatusRequest
     {
         public string docId { get; set; } = null!;
-        public string statusCode { get; set; } = null!;
+        public string? statusId { get; set; }
+        public string? statusCode { get; set; }
         public string? remark { get; set; }
         public string? updateBy { get; set; }
     }
@@ -136,6 +140,7 @@ public static class TransactionRequest
         public string? remark { get; set; }
         public string? menuId { get; set; }
         public string? docTypeId { get; set; }
+        public string? statusId { get; set; }
         public string? statusCode { get; set; }
         public string? updateBy { get; set; }
         public DateTime? updateDate { get; set; }
@@ -182,6 +187,7 @@ public static class TransactionRequest
         public string? remark { get; set; }
         public string? menuId { get; set; }
         public string? docTypeId { get; set; }
+        public string? statusId { get; set; }
         public string? statusCode { get; set; }
         public string? updateBy { get; set; }
         public DateTime? updateDate { get; set; }

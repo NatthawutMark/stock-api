@@ -10,5 +10,6 @@ public interface IStatusRepository
     Task<List<MastStatusResponse>> list(MastStatusRequest req);
     Task<ActionResult> create(MastStatusRequest req);
     Task<MastStatusResponse?> GetByCode(bool check, string code);
+    Task<MastStatusResponse?> GetById(string id);
 }
 

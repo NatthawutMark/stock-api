@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Data;
 using stock_api.Repositories;
 using stock_api.Interfaces;
+using stock_api.Common;
 using Microsoft.AspNetCore.Authorization;
 using static stock_api.Request.TransactionRequest;
 using static stock_api.Response.TransactionResponse;
@@ -77,9 +78,21 @@ public class DocTransController : ControllerBase
             req.createBy = userId;
             req.updateBy = userId;
 
-            if (string.IsNullOrWhiteSpace(req.statusCode))
+            if (!string.IsNullOrWhiteSpace(req.statusId) && string.IsNullOrWhiteSpace(req.statusCode))
             {
-                req.statusCode = "DRAFT";
+                var st = await _unitOfWork.Statuses.GetById(req.statusId);
+                req.statusCode = st?.code;
+            }
+            else if (string.IsNullOrWhiteSpace(req.statusId) && !string.IsNullOrWhiteSpace(req.statusCode))
+            {
+                var st = await _unitOfWork.Statuses.GetByCode(true, req.statusCode);
+                req.statusId = st?.id;
+            }
+            else if (string.IsNullOrWhiteSpace(req.statusId) && string.IsNullOrWhiteSpace(req.statusCode))
+            {
+                var st = await _unitOfWork.Statuses.GetByCode(true, DocStatusConstant.Draft);
+                req.statusId = st?.id;
+                req.statusCode = DocStatusConstant.Draft;
             }
 
             var result = await _unitOfWork.DocTrans.Create(req);
@@ -168,7 +181,7 @@ public class DocTransController : ControllerBase
 
                 // เงื่อนไข: Transaction บันทึกข้อมูลสมบูรณ์แล้ว
                 // ถ้าสถานะเป็น SAVE และยังไม่มี DocNo จึงจะสร้าง DocNo
-                if (req.statusCode?.ToUpper() == "SAVE" && string.IsNullOrWhiteSpace(req.docNo))
+                if (string.Equals(req.statusCode, DocStatusConstant.Save, StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(req.docNo))
                 {
                     req.docNo = await _systemService.GetDocNumber(new DocNumber
                     {
@@ -300,12 +313,23 @@ public class DocTransController : ControllerBase
                 req.docNo = existingDoc.docNo;
             }
 
+            if (!string.IsNullOrWhiteSpace(req.statusId) && string.IsNullOrWhiteSpace(req.statusCode))
+            {
+                var st = await _unitOfWork.Statuses.GetById(req.statusId);
+                req.statusCode = st?.code;
+            }
+            else if (string.IsNullOrWhiteSpace(req.statusId) && !string.IsNullOrWhiteSpace(req.statusCode))
+            {
+                var st = await _unitOfWork.Statuses.GetByCode(true, req.statusCode);
+                req.statusId = st?.id;
+            }
+
             var result = await _unitOfWork.DocTrans.Update(req);
             if (result is OkObjectResult)
             {
                 // เงื่อนไข: Transaction บันทึกข้อมูลสมบูรณ์แล้ว
                 // ถ้าสถานะเป็น SAVE และยังไม่มี DocNo ให้สร้าง DocNo
-                if (req.statusCode?.ToUpper() == "SAVE" && string.IsNullOrWhiteSpace(req.docNo))
+                if (string.Equals(req.statusCode, DocStatusConstant.Save, StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(req.docNo))
                 {
                     req.docNo = await _systemService.GetDocNumber(new DocNumber
                     {
@@ -345,9 +369,20 @@ public class DocTransController : ControllerBase
     {
         try
         {
-            if (req == null || string.IsNullOrEmpty(req.docId) || string.IsNullOrEmpty(req.statusCode))
+            if (req == null || string.IsNullOrEmpty(req.docId) || (string.IsNullOrEmpty(req.statusId) && string.IsNullOrEmpty(req.statusCode)))
             {
-                return BadRequest(new { status = false, message = "docId and statusCode are required." });
+                return BadRequest(new { status = false, message = "docId and statusId (or statusCode) are required." });
+            }
+
+            if (!string.IsNullOrWhiteSpace(req.statusId) && string.IsNullOrWhiteSpace(req.statusCode))
+            {
+                var st = await _unitOfWork.Statuses.GetById(req.statusId);
+                req.statusCode = st?.code;
+            }
+            else if (string.IsNullOrWhiteSpace(req.statusId) && !string.IsNullOrWhiteSpace(req.statusCode))
+            {
+                var st = await _unitOfWork.Statuses.GetByCode(true, req.statusCode);
+                req.statusId = st?.id;
             }
 
             string userId = _systemService.GetUserId() ?? "system";
@@ -359,7 +394,7 @@ public class DocTransController : ControllerBase
 
                 // เงื่อนไข: Transaction บันทึกเปลี่ยนสถานะสำเร็จแล้ว
                 // ถ้าเปลี่ยนสถานะเป็น SAVE และเอกสารยังไม่มี DocNo จึงจะสร้าง DocNo
-                if (req.statusCode?.ToUpper() == "SAVE")
+                if (string.Equals(req.statusCode, DocStatusConstant.Save, StringComparison.OrdinalIgnoreCase))
                 {
                     var existingDoc = await _unitOfWork.DocTrans.GetById(req.docId);
                     if (existingDoc != null && string.IsNullOrWhiteSpace(existingDoc.docNo))

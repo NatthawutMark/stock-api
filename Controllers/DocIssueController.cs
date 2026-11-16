@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Data;
 using stock_api.Repositories;
 using stock_api.Interfaces;
+using stock_api.Common;
 using Microsoft.AspNetCore.Authorization;
 using static stock_api.Request.TransactionRequest;
 using static stock_api.Response.TransactionResponse;
@@ -92,6 +93,7 @@ public class DocIssueController : ControllerBase
                 data.docNo = resHeader.docNo;
                 data.docDate = resHeader.docDate;
                 data.docTypeId = resHeader.docTypeId;
+                data.statusId = resHeader.statusId;
                 data.statusCode = resHeader.statusCode;
                 data.refDocNo = resHeader.refDocNo;
                 data.empId = resHeader.empId;
@@ -160,6 +162,22 @@ public class DocIssueController : ControllerBase
                 req.docTypeId = existingDoc.docTypeId;
             }
 
+            // Resolve statusId and statusCode
+            string? targetStatusId = req.statusId;
+            string? targetStatusCode = req.statusCode?.ToUpper();
+            if (!string.IsNullOrWhiteSpace(targetStatusId) && string.IsNullOrWhiteSpace(targetStatusCode))
+            {
+                var st = await _unitOfWork.Statuses.GetById(targetStatusId);
+                targetStatusCode = st?.code?.ToUpper();
+            }
+            else if (!string.IsNullOrWhiteSpace(targetStatusCode) && string.IsNullOrWhiteSpace(targetStatusId))
+            {
+                var st = await _unitOfWork.Statuses.GetByCode(true, targetStatusCode);
+                targetStatusId = st?.id;
+            }
+            targetStatusId ??= existingDoc.statusId;
+            targetStatusCode ??= existingDoc.statusCode;
+
             var docTrans = new DocTransUpdateRequest
             {
                 id = id,
@@ -169,7 +187,8 @@ public class DocIssueController : ControllerBase
                 custId = req.custId,
                 refDocNo = req.refDocNo,
                 docTypeId = req.docTypeId,
-                statusCode = req.statusCode?.ToUpper() ?? existingDoc.statusCode,
+                statusId = targetStatusId,
+                statusCode = targetStatusCode,
                 remark = req.remark,
                 updateBy = userId,
                 warehouseId = req.warehouseId,
@@ -202,7 +221,7 @@ public class DocIssueController : ControllerBase
             {
                 // เงื่อนไข: Transaction บันทึกข้อมูลสมบูรณ์แล้ว
                 // ถ้าสถานะเป็น SAVE และยังไม่มี DocNo จึงจะสร้าง DocNo
-                if (req.statusCode?.ToUpper() == "SAVE" && string.IsNullOrWhiteSpace(req.docNo))
+                if (string.Equals(targetStatusCode, DocStatusConstant.Save, StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(req.docNo))
                 {
                     req.docNo = await _systemService.GetDocNumber(new DocNumber
                     {
@@ -217,7 +236,7 @@ public class DocIssueController : ControllerBase
                 }
 
                 await _unitOfWork.CompleteAsync();
-                return return200(true, new { id, docNo = req.docNo }, "Update DocTrans Success", "");
+                return return200(true, new { id, docNo = req.docNo, statusId = targetStatusId, statusCode = targetStatusCode }, "Update DocTrans Success", "");
             }
             else if (resHeader is BadRequestObjectResult badRequestResult)
             {

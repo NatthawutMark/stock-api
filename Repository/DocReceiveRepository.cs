@@ -139,7 +139,12 @@ public class DocReceiveRepository : IDocReceiveRepository
             string updateDetail = @"UPDATE doc_receive_detail set putaway_qty = 0 where doc_id = @id";
             await _connection.ExecuteAsync(updateDetail, new { id }, _transaction);
 
-            string updateSql = @"UPDATE doc_trans set STATUS_CODE = 'CONFIRM' where id = @id";
+            string updateSql = @"
+                UPDATE doc_trans 
+                SET status_id = (SELECT id FROM mast_status WHERE code = 'CONFIRM' AND is_delete = false LIMIT 1),
+                    status_code = 'CONFIRM',
+                    update_date = CURRENT_TIMESTAMP
+                WHERE id = @id";
 
             var rows = await _connection.ExecuteAsync(updateSql, new { id }, transaction: _transaction);
             return rows > 0
@@ -159,7 +164,7 @@ public class DocReceiveRepository : IDocReceiveRepository
 
             // 1. ตรวจสอบเอกสาร doc_trans และดึง warehouse_id รวมถึงสถานะปัจจุบัน
             var docTrans = await _connection.QueryFirstOrDefaultAsync<DocTransResponse>(
-                "SELECT id, warehouse_id AS warehouseId, status_code AS statusCode FROM doc_trans WHERE id = @id AND (is_delete IS NULL OR is_delete = false)",
+                "SELECT id, warehouse_id AS warehouseId, status_id AS statusId, status_code AS statusCode FROM doc_trans WHERE id = @id AND (is_delete IS NULL OR is_delete = false)",
                 new { id = _id },
                 transaction: _transaction);
 
@@ -287,7 +292,8 @@ public class DocReceiveRepository : IDocReceiveRepository
             // 5. ปรับปรุงสถานะของ doc_trans เป็น COMPLETED
             const string updateTransSql = @"
                 UPDATE doc_trans 
-                SET status_code = 'COMPLETED',
+                SET status_id = (SELECT id FROM mast_status WHERE code = 'COMPLETED' AND is_delete = false LIMIT 1),
+                    status_code = 'COMPLETED',
                     update_date = CURRENT_TIMESTAMP,
                     update_by = @userId
                 WHERE id = @id 
@@ -297,6 +303,10 @@ public class DocReceiveRepository : IDocReceiveRepository
 
             if (rows > 0)
             {
+                var completedStatusId = await _connection.QueryFirstOrDefaultAsync<string>(
+                    "SELECT id FROM mast_status WHERE code = 'COMPLETED' AND is_delete = false LIMIT 1",
+                    transaction: _transaction);
+
                 // 6. บันทึก Transaction Log
                 const string insertLogSql = @"
                     INSERT INTO doc_trans_log (
@@ -311,8 +321,8 @@ public class DocReceiveRepository : IDocReceiveRepository
                 {
                     logId = Guid.NewGuid().ToString().ToUpper().Replace("-", ""),
                     docId = _id,
-                    fromStatusId = docTrans.statusCode,
-                    toStatusId = "COMPLETED",
+                    fromStatusId = docTrans.statusId,
+                    toStatusId = completedStatusId,
                     userId = user,
                     remark = "Putaway completed - stock updated to inventory"
                 }, transaction: _transaction);
@@ -333,8 +343,8 @@ public class DocReceiveRepository : IDocReceiveRepository
         try
         {
             // ดึงสถานะปัจจุบัน
-            var currentStatus = await _connection.QueryFirstOrDefaultAsync<string>(
-                "SELECT status_code FROM doc_trans WHERE id = @docId AND is_delete = false",
+            var currentStatus = await _connection.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT dt.status_id as statusid, dt.status_code as statuscode FROM doc_trans dt WHERE dt.id = @docId AND dt.is_delete = false",
                 new { req.docId }, transaction: _transaction);
 
             if (currentStatus == null)
@@ -342,17 +352,28 @@ public class DocReceiveRepository : IDocReceiveRepository
                 return new BadRequestObjectResult(new { success = false, results = "", message = "Document not found", error = "" });
             }
 
+            string? currentStatusId = (string?)currentStatus.statusid;
+
             const string updateSql = @"
                 UPDATE doc_trans 
-                SET status_code = @statusCode, 
+                SET status_id = COALESCE(@statusId, (SELECT id FROM mast_status WHERE code = @statusCode AND is_delete = false LIMIT 1), status_id),
+                    status_code = COALESCE(@statusCode, (SELECT code FROM mast_status WHERE id = @statusId AND is_delete = false LIMIT 1), status_code),
                     update_date = CURRENT_TIMESTAMP, 
                     update_by = @userId 
                 WHERE id = @docId AND is_delete = false";
 
-            var rows = await _connection.ExecuteAsync(updateSql, new { req.statusCode, userId, req.docId }, transaction: _transaction);
+            var rows = await _connection.ExecuteAsync(updateSql, new { req.statusId, req.statusCode, userId, req.docId }, transaction: _transaction);
 
             if (rows > 0)
             {
+                var newStatus = await _connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "SELECT dt.status_id as statusid, dt.status_code as statuscode, ms.name_th as nameth FROM doc_trans dt LEFT JOIN mast_status ms ON dt.status_id = ms.id WHERE dt.id = @docId",
+                    new { req.docId }, transaction: _transaction);
+
+                string? newStatusId = (string?)newStatus?.statusid;
+                string? newStatusCode = (string?)newStatus?.statuscode ?? req.statusCode;
+                string? newStatusName = (string?)newStatus?.nameth;
+
                 // บันทึก Log เปลี่ยนสถานะ
                 const string insertLogSql = @"
                     INSERT INTO doc_trans_log (
@@ -367,13 +388,13 @@ public class DocReceiveRepository : IDocReceiveRepository
                 {
                     logId = Guid.NewGuid().ToString().ToUpper().Replace("-", ""),
                     docId = req.docId,
-                    fromStatusId = currentStatus,
-                    toStatusId = req.statusCode,
+                    fromStatusId = currentStatusId,
+                    toStatusId = newStatusId,
                     userId = userId,
-                    remark = req.remark ?? $"เปลี่ยนสถานะเป็น {req.statusCode}"
+                    remark = req.remark ?? $"เปลี่ยนสถานะเป็น {newStatusName ?? newStatusCode}"
                 }, transaction: _transaction);
 
-                return new OkObjectResult(new { success = true, results = req.docId, message = $"Update status to {req.statusCode} Success", error = "" });
+                return new OkObjectResult(new { success = true, results = req.docId, message = $"Update status to {newStatusCode} Success", error = "" });
             }
 
             return new BadRequestObjectResult(new { success = false, results = "", message = "Update status Failed", error = "" });
@@ -413,8 +434,10 @@ public class DocReceiveRepository : IDocReceiveRepository
                 dtl.id,
                 dtl.doc_id AS docId,
                 dtl.from_status_id AS fromStatusId,
+                st_from.code AS fromStatusCode,
                 st_from.name_th AS fromStatusName,
                 dtl.to_status_id AS toStatusId,
+                st_to.code AS toStatusCode,
                 st_to.name_th AS toStatusName,
                 dtl.from_user_id AS fromUserId,
                 dtl.to_user_id AS toUserId,
@@ -422,8 +445,8 @@ public class DocReceiveRepository : IDocReceiveRepository
                 dtl.create_date AS createDate,
                 dtl.create_by AS createBy
             FROM doc_trans_log dtl
-            LEFT JOIN mast_status st_from ON dtl.from_status_id = st_from.code
-            LEFT JOIN mast_status st_to ON dtl.to_status_id = st_to.code
+            LEFT JOIN mast_status st_from ON (dtl.from_status_id = st_from.id OR dtl.from_status_id = st_from.code)
+            LEFT JOIN mast_status st_to ON (dtl.to_status_id = st_to.id OR dtl.to_status_id = st_to.code)
             WHERE dtl.doc_id = @docId AND dtl.is_delete = false
             ORDER BY dtl.create_date ASC";
 

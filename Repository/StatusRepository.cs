@@ -59,5 +59,11 @@ public class StatusRepository : IStatusRepository
 
         return await _connection.QueryFirstOrDefaultAsync<MastStatusResponse>(sql, new { code = check ? code.Trim() : $"%{code.Trim()}%" }, transaction: _transaction);
     }
+
+    public async Task<MastStatusResponse?> GetById(string id)
+    {
+        var sql = "SELECT * FROM mast_status WHERE id = @id AND is_active = true AND is_delete = false";
+        return await _connection.QueryFirstOrDefaultAsync<MastStatusResponse>(sql, new { id = id.Trim() }, transaction: _transaction);
+    }
 }
 

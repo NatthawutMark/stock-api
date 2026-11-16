@@ -10,6 +10,7 @@ public static class TransactionResponse
         public string id { get; set; } = null!;
         public string menuId { get; set; } = null!;
         public string? menuName { get; set; }
+        public string? statusId { get; set; }
         public string statusCode { get; set; } = null!;
         public string? statusNameTh { get; set; }
         public string? statusNameEn { get; set; }
@@ -47,8 +48,10 @@ public static class TransactionResponse
         public string id { get; set; } = null!;
         public string docId { get; set; } = null!;
         public string? fromStatusId { get; set; }
+        public string? fromStatusCode { get; set; }
         public string? fromStatusName { get; set; }
         public string? toStatusId { get; set; }
+        public string? toStatusCode { get; set; }
         public string? toStatusName { get; set; }
         public string? fromUserId { get; set; }
         public string? toUserId { get; set; }
