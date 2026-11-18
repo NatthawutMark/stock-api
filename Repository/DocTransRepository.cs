@@ -26,7 +26,7 @@ public class DocTransRepository : IDocTransRepository
         SELECT 
             dt.id,
             dt.menu_id AS menuId,
-            CONCAT(sm.name_th, '(', sm.name_en, ')') AS menuName,
+            CONCAT(sm.name_th, ' (', sm.name_en, ')') AS menuName,
             dt.status_id AS statusId,
             COALESCE(st.code, dt.status_code) AS statusCode,
             st.name_th AS statusNameTh,
@@ -262,7 +262,7 @@ public class DocTransRepository : IDocTransRepository
         try
         {
             string? statusId = req.statusId;
-            string? statusCode = req.statusCode;
+            string? statusCode = req.statusCode.ToUpper();
 
             if (string.IsNullOrEmpty(statusId) && !string.IsNullOrEmpty(statusCode))
             {

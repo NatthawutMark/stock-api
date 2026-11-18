@@ -60,36 +60,10 @@ public class InventoriesRepository : IInventoriesRepository
     {
         try
         {
-            string sql = baseSql + " Where inv.is_delete = false ";
-            if (!string.IsNullOrEmpty(req?.itemCode))
-            {
-                sql += " AND (i.item_code ILIKE @Search OR i.item_name ILIKE @Search)";
-            }
-            if (req != null && !string.IsNullOrEmpty(req.warehouseId))
-            {
-                sql += " AND inv.warehouse_id = @warehouseId";
-            }
-            if (req != null && !string.IsNullOrEmpty(req.locationId))
-            {
-                sql += " AND inv.location_id = @locationId";
-            }
-            if (req != null && !string.IsNullOrEmpty(req.lotNo))
-            {
-                sql += " AND inv.lot_no ILIKE @srcLotno";
-            }
-            if (req != null && !string.IsNullOrEmpty(req.serialNo))
-            {
-                sql += " AND inv.lot_no ILIKE @srcSerial";
-            }
-            sql += " ORDER BY inv.update_date desc,inv.create_date desc";
+            var (whereSql, parameters) = BuildFilter(req);
+            string sql = $"{baseSql} {whereSql} ORDER BY inv.update_date desc, inv.create_date desc";
 
-            var result = await _connection.QueryAsync<InventoryList>(sql, new
-            {
-                warehouseId = req?.warehouseId,
-                Search = $"%{req?.itemCode}%",
-                srcLotno = $"{req?.lotNo}",
-                serialNo = $"{req?.serialNo}",
-            }, transaction: _transaction);
+            var result = await _connection.QueryAsync<InventoryList>(sql, parameters, transaction: _transaction);
             return result.ToList();
         }
         catch (Exception ex)
@@ -103,43 +77,49 @@ public class InventoriesRepository : IInventoriesRepository
         try
         {
             string sql = @$"
-        with inv as ({baseSql}),
-        issue as (
-        	select 
-        	iss.inv_id as invId,
-        	sum(iss.item_qty) as itemQty,
-        	sum(coalesce(iss.picking_qty,0)) as pickingQty,
-        	sum(coalesce(iss.item_qty,0)) - sum(coalesce(iss.picking_qty ,0)) as remainQty
-        	from doc_trans doc
-        	left join doc_issue_detail iss on doc.id  = iss.doc_id 
-        	where doc.menu_id = @menuId 
-            {(!string.IsNullOrEmpty(req.docId) ? " AND doc.id <> @docId " : "")}
-            group by iss.inv_id
-        )
+                with inv as ({baseSql}),
+                issue as (
+                	select 
+                	iss.inv_id as invId,
+                	sum(iss.item_qty) as itemQty,
+                	sum(coalesce(iss.picking_qty,0)) as pickingQty,
+                	sum(coalesce(iss.item_qty,0)) - sum(coalesce(iss.picking_qty ,0)) as remainQty
+                	from doc_trans doc
+                	left join doc_issue_detail iss on doc.id  = iss.doc_id 
+                	where doc.menu_id = @menuId 
+                    {(!string.IsNullOrEmpty(req.docId) ? " AND doc.id <> @docId " : "")}
+                    group by iss.inv_id
+                )
 
-        select 
-        	inv.id,
-        	inv.itemId,
-	        inv.itemCode,
-        	inv.ItemName,
-        	inv.SerialNo,
-        	inv.lotNo,
-        	(inv.itemQty - (coalesce(issue.remainQty,0) + coalesce(@currentPicking,0))) as availableQty,
-        	inv.itemPrice,
-        	inv.mfgDate,
-        	inv.expireDate,
-        	inv.uomName,
-        	inv.locationName,
-        	inv.warehouseName
-        from inv 
-        left outer join issue on inv.id = issue.invId ";
+                select 
+                	inv.id,
+                	inv.itemId,
+	                inv.itemCode,
+                	inv.ItemName,
+                	inv.SerialNo,
+                	inv.lotNo,
+                	(inv.itemQty - (coalesce(issue.remainQty,0) + coalesce(@currentPicking,0))) as availableQty,
+                	inv.itemPrice,
+                	inv.mfgDate,
+                	inv.expireDate,
+                	inv.uomName,
+                	inv.locationName,
+                	inv.warehouseName
+                from inv 
+                left outer join issue on inv.id = issue.invId 
+                where (inv.itemQty - (coalesce(issue.remainQty,0) + coalesce(@currentPicking,0))) > 0";
 
+            if (!string.IsNullOrEmpty(req?.warehouseId))
+            {
+                sql += " AND inv.warehouseId = @warehouseId";
+            }
 
             var result = await _connection.QueryAsync<IssueInventoryList>(sql, new
             {
                 req?.menuId,
                 req?.currentPicking,
-                req?.docId
+                req?.docId,
+                req?.warehouseId
             }, transaction: _transaction);
 
             return result.ToList();
@@ -153,35 +133,49 @@ public class InventoriesRepository : IInventoriesRepository
 
     public async Task<int> GetTotal(InventoryRequest req)
     {
-        var sql = "SELECT COUNT(1) FROM inventory inv WHERE (inv.is_delete IS NULL OR inv.is_delete = false)";
+        var (whereSql, parameters) = BuildFilter(req);
+        var sql = $@"SELECT COUNT(1)
+                     FROM inventory inv
+                     LEFT JOIN mast_item i ON inv.item_id = i.id
+                     {whereSql}";
+
+        return await _connection.ExecuteScalarAsync<int>(sql, parameters, transaction: _transaction);
+    }
+
+    private static (string whereSql, object parameters) BuildFilter(InventoryRequest? req)
+    {
+        var whereSql = "WHERE (inv.is_delete IS NULL OR inv.is_delete = false)";
 
         if (!string.IsNullOrEmpty(req?.itemCode))
         {
-            sql += " AND (i.item_code ILIKE @Search OR i.item_name ILIKE @Search)";
+            whereSql += " AND (i.item_code ILIKE @Search OR i.item_name ILIKE @Search)";
         }
-        if (req != null && !string.IsNullOrEmpty(req.warehouseId))
+        if (!string.IsNullOrEmpty(req?.warehouseId))
         {
-            sql += " AND inv.warehouse_id = @warehouseId";
+            whereSql += " AND inv.warehouse_id = @warehouseId";
         }
-        if (req != null && !string.IsNullOrEmpty(req.locationId))
+        if (!string.IsNullOrEmpty(req?.locationId))
         {
-            sql += " AND inv.location_id = @locationId";
+            whereSql += " AND inv.location_id = @locationId";
         }
-        if (req != null && !string.IsNullOrEmpty(req.lotNo))
+        if (!string.IsNullOrEmpty(req?.lotNo))
         {
-            sql += " AND inv.lot_no ILIKE @srcLotno";
+            whereSql += " AND inv.lot_no ILIKE @srcLotno";
         }
-        if (req != null && !string.IsNullOrEmpty(req.serialNo))
+        if (!string.IsNullOrEmpty(req?.serialNo))
         {
-            sql += " AND inv.lot_no ILIKE @srcSerial";
+            whereSql += " AND inv.serial_no ILIKE @srcSerial";
         }
 
-        return await _connection.ExecuteScalarAsync<int>(sql, new
+        var parameters = new
         {
-            req?.warehouseId,
+            warehouseId = req?.warehouseId,
+            locationId = req?.locationId,
             Search = $"%{req?.itemCode}%",
-            srcLotno = $"{req?.lotNo}",
-            serialNo = $"{req?.serialNo}",
-        }, transaction: _transaction);
+            srcLotno = $"%{req?.lotNo}%",
+            srcSerial = $"%{req?.serialNo}%",
+        };
+
+        return (whereSql, parameters);
     }
 }

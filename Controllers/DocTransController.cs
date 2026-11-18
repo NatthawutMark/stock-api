@@ -85,7 +85,7 @@ public class DocTransController : ControllerBase
             }
             else if (string.IsNullOrWhiteSpace(req.statusId) && !string.IsNullOrWhiteSpace(req.statusCode))
             {
-                var st = await _unitOfWork.Statuses.GetByCode(true, req.statusCode);
+                var st = await _unitOfWork.Statuses.GetByCode(true, req.statusCode.ToUpper());
                 req.statusId = st?.id;
             }
             else if (string.IsNullOrWhiteSpace(req.statusId) && string.IsNullOrWhiteSpace(req.statusCode))
