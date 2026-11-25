@@ -28,7 +28,10 @@ public class UnitOfWork : IUnitOfWork
     public IDocTransRepository DocTrans { get; private set; }
     public IDocReceiveRepository DocReceives { get; private set; }
     public IDocIssueRepository DocIssue { get; private set; }
+    public IDocReturnRepository DocReturns { get; private set; }
     public IInventoriesRepository Inventories { get; private set; }
+    public IInventoryDamageRepository InventoryDamages { get; private set; }
+    public IDocDisposalRepository DocDisposals { get; private set; }
     public UnitOfWork(IDbConnection context, ISystemService systemService)
     {
         _connection = context;
@@ -55,7 +58,10 @@ public class UnitOfWork : IUnitOfWork
         DocTrans = new DocTransRepository(_connection, _transaction);
         DocReceives = new DocReceiveRepository(_connection, _transaction);
         DocIssue = new DocIssueRepository(_connection, _transaction);
+        DocReturns = new DocReturnRepository(_connection, _transaction);
         Inventories = new InventoriesRepository(_connection, _transaction);
+        InventoryDamages = new InventoryDamageRepository(_connection, _transaction);
+        DocDisposals = new DocDisposalRepository(_connection, _transaction);
     }
 
     public async Task<int> CompleteAsync()

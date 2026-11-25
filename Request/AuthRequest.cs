@@ -22,7 +22,7 @@ public static class AuthRequest
         public string Token { get; set; } = null!;
         public DateTime ExpiryDate { get; set; }
         public bool IsRevoked { get; set; }
-        public DateTime CreateDate { get; set; }
+        public DateTime CreateAt { get; set; }
     }
 
     public class RefreshRequest

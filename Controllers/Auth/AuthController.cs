@@ -83,7 +83,7 @@ public class AuthController : ControllerBase
                     Token = refreshTokenValue,
                     ExpiryDate = DateTime.Now.AddDays(expirationMinutes),
                     IsRevoked = false,
-                    CreateDate = DateTime.Now
+                    CreateAt = DateTime.Now
                 };
                 await _unitOfWork.Auths.AddRefreshTokenAsync(refreshToken);
 
@@ -150,7 +150,7 @@ public class AuthController : ControllerBase
                 Token = newRefreshTokenValue,
                 ExpiryDate = DateTime.Now.AddDays(expirationDate),
                 IsRevoked = false,
-                CreateDate = DateTime.Now
+                CreateAt = DateTime.Now
             };
 
             await _unitOfWork.Auths.AddRefreshTokenAsync(newRefreshToken);

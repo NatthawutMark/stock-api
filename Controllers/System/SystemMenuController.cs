@@ -42,7 +42,7 @@ public class SystemMenuController : ControllerBase
                 NameEn = menu.NameEn ?? null,
                 CreateBy = menu.CreateBy,
                 UpdateBy = menu.UpdateBy,
-                UpdateDate = DateTime.Now
+                UpdateAt = DateTime.Now
             };
 
             await _unitOfWork.SystemMenus.AddAsync(newMenu);

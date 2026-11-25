@@ -1,0 +1,372 @@
+using Dapper;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using stock_api.Interfaces;
+using static stock_api.Request.TransactionRequest;
+using static stock_api.Response.TransactionResponse;
+
+namespace stock_api.Repositories;
+
+public class DocDisposalRepository : IDocDisposalRepository
+{
+    private readonly IDbConnection _connection;
+    private readonly IDbTransaction? _transaction;
+
+    public DocDisposalRepository(IDbConnection connection, IDbTransaction? transaction)
+    {
+        _connection = connection;
+        _transaction = transaction;
+    }
+
+    private const string baseSql = @"
+        SELECT 
+            iss.id,
+            iss.doc_id AS docId,
+            iss.inv_id AS invId,
+            iss.item_qty AS itemQty,
+            iss.picking_qty AS pickingQty,
+            iss.return_qty AS returnQty,
+            iss.tracking_code AS trackingCode,
+            iss.is_active AS isActive,
+            iss.is_delete AS isDelete,
+            COALESCE(iss.item_id, inv.item_id) AS itemId,
+            item.item_code AS itemCode,
+            item.item_name AS itemName,
+            COALESCE(iss.lot_no, inv.lot_no) AS lotNo,
+            COALESCE(iss.serial_no, inv.serial_no) AS serialNo,
+            COALESCE(iss.location_id, inv.location_id) AS locationId,
+            loc.name AS locationName,
+            COALESCE(iss.uom_id, inv.uom_id) AS uomId,
+            uom.name AS uomName,
+            COALESCE(iss.item_price, inv.item_price) AS itemPrice,
+            COALESCE(inv.item_qty, 0) AS availableQty,
+            COALESCE(iss.mfg_date, inv.mfg_date) AS mfgDate,
+            COALESCE(iss.expire_date, inv.expire_date) AS expireDate,
+            COALESCE(inv.warehouse_id, dt.warehouse_id) AS warehouseId,
+            wh.warehouse_name AS warehouseName
+        FROM doc_issue_detail iss
+        LEFT JOIN doc_trans dt ON iss.doc_id = dt.id
+        LEFT JOIN inventory inv ON iss.inv_id = inv.id
+        LEFT JOIN mast_item item ON COALESCE(iss.item_id, inv.item_id) = item.id
+        LEFT JOIN mast_uom uom ON COALESCE(iss.uom_id, inv.uom_id) = uom.id 
+        LEFT JOIN mast_location loc ON COALESCE(iss.location_id, inv.location_id) = loc.id
+        LEFT JOIN mast_warehouse wh ON COALESCE(inv.warehouse_id, dt.warehouse_id) = wh.id ";
+
+    private const string insertDisposalDetailSql = @"
+        INSERT INTO doc_disposal_detail (
+            id, doc_id, inv_id, item_id, lot_no, serial_no, location_id, uom_id,
+            item_price, mfg_date, expire_date,
+            item_qty, picking_qty, return_qty, tracking_code,
+            is_active, is_delete, create_at, create_by, update_at, update_by
+        ) 
+        VALUES (
+            @id, @docId, @invId, @itemId, @lotNo, @serialNo, @locationId, @uomId,
+            @itemPrice, @mfgDate, @expireDate,
+            @itemQty, COALESCE(@pickingQty, 0), COALESCE(@returnQty, 0), @trackingCode,
+            true, false, CURRENT_TIMESTAMP, @createBy, CURRENT_TIMESTAMP, @updateBy
+        )";
+
+    public async Task<List<DocDisposalDetailResponse>> List(DocDisposalDetailRequest req)
+    {
+        try
+        {
+            string sql = baseSql + " WHERE (iss.is_delete IS NULL OR iss.is_delete = @isDelete)";
+            if (!string.IsNullOrEmpty(req.docId))
+                sql += " AND iss.doc_id = @docId";
+
+            var param = new
+            {
+                docId = req.docId,
+                isDelete = req.isDelete ?? false
+            };
+            var res = await _connection.QueryAsync<DocDisposalDetailResponse>(sql, param, transaction: _transaction);
+            return res.ToList();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error : {ex.Message}, {ex.InnerException?.Message}");
+        }
+    }
+
+    public async Task<List<DocDisposalDetailResponse>> getListById(string _id)
+    {
+        try
+        {
+            string sql = baseSql + " WHERE iss.doc_id = @id AND (iss.is_delete IS NULL OR iss.is_delete = false)";
+            var res = await _connection.QueryAsync<DocDisposalDetailResponse>(sql, new { id = _id }, transaction: _transaction);
+            return res.ToList();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error : {ex.Message}, {ex.InnerException?.Message}");
+        }
+    }
+
+    public async Task<ActionResult> CreateList(List<DocDisposalDetailRequest> req)
+    {
+        try
+        {
+            await PopulateSnapshotFromInventoryAsync(req);
+
+            var rows = await _connection.ExecuteAsync(insertDisposalDetailSql, req, transaction: _transaction);
+
+            return rows > 0
+                ? new OkObjectResult(new { success = true, results = "", message = "Create DocDisposal Detail Success", error = "" })
+                : new BadRequestObjectResult(new { success = false, results = "", message = "Create DocDisposal Detail Failed", error = "" });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+
+    public async Task<ActionResult> Update(string id, List<DocDisposalDetailRequest> req)
+    {
+        try
+        {
+            string delItems = @"DELETE FROM doc_disposal_detail WHERE doc_id = @id";
+            await _connection.ExecuteAsync(delItems, new { id }, transaction: _transaction);
+
+            if (req != null && req.Any())
+            {
+                await PopulateSnapshotFromInventoryAsync(req);
+
+                var rows = await _connection.ExecuteAsync(insertDisposalDetailSql, req, transaction: _transaction);
+                return rows > 0
+                    ? new OkObjectResult(new { success = true, results = id, message = "Update DocDisposal Detail Success", error = "" })
+                    : new BadRequestObjectResult(new { success = false, results = "", message = "Update DocDisposal Detail Failed", error = "No rows inserted" });
+            }
+
+            return new OkObjectResult(new { success = true, results = id, message = "Update DocDisposal Detail Success", error = "" });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+
+    public async Task<ActionResult> Confirm(string id)
+    {
+        try
+        {
+            string updateDetail = @"UPDATE doc_disposal_detail SET picking_qty = 0 WHERE doc_id = @id";
+            await _connection.ExecuteAsync(updateDetail, new { id }, transaction: _transaction);
+
+            string updateSql = @"
+                UPDATE doc_trans 
+                SET status_id = (SELECT id FROM mast_status WHERE code = 'CONFIRM' AND is_delete = false LIMIT 1),
+                    status_code = 'CONFIRM',
+                    update_at = CURRENT_TIMESTAMP 
+                WHERE id = @id";
+            var rows = await _connection.ExecuteAsync(updateSql, new { id }, transaction: _transaction);
+
+            return rows > 0
+                ? new OkObjectResult(new { success = true, results = id, message = "Confirm DocDisposal Success", error = "" })
+                : new BadRequestObjectResult(new { success = false, results = "", message = "Confirm DocDisposal Failed", error = "Document not found or deleted" });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+
+    public async Task<ActionResult> Picking(string _id, string? userId = null)
+    {
+        try
+        {
+            string user = !string.IsNullOrEmpty(userId) ? userId : "system";
+
+            // 1. ตรวจสอบเอกสาร doc_trans
+            var docTrans = await _connection.QueryFirstOrDefaultAsync<DocTransResponse>(
+                "SELECT id, warehouse_id AS warehouseId, status_id AS statusId, status_code AS statusCode FROM doc_trans WHERE id = @id AND (is_delete IS NULL OR is_delete = false)",
+                new { id = _id },
+                transaction: _transaction);
+
+            if (docTrans == null)
+            {
+                return new BadRequestObjectResult(new { success = false, results = "", message = "Document not found", error = "Document not found or deleted" });
+            }
+
+            // 2. ตรวจสอบรายการที่ต้องทำการ Picking (item_qty > picking_qty)
+            string sqlCheckItems = @"
+                SELECT COUNT(1) 
+                FROM doc_disposal_detail iss 
+                WHERE iss.doc_id = @id 
+                  AND (iss.is_delete IS NULL OR iss.is_delete = false) 
+                  AND (iss.item_qty - COALESCE(iss.picking_qty, 0)) > 0";
+
+            var count = await _connection.ExecuteScalarAsync<int>(sqlCheckItems, new { id = _id }, transaction: _transaction);
+            if (count == 0)
+            {
+                return new BadRequestObjectResult(new { success = false, results = "", message = "Can't Find Item", error = "No items left to pick" });
+            }
+
+            // 3. ปรับปรุงตัดสต็อกออกจากตาราง inventory
+            const string sqlPicking = @"
+                MERGE INTO inventory AS target
+                USING (
+                    SELECT 
+                        iss.inv_id,
+                        SUM(iss.item_qty - COALESCE(iss.picking_qty, 0)) AS qty_to_pick
+                    FROM doc_disposal_detail iss
+                    WHERE iss.doc_id = @id 
+                      AND (iss.is_delete IS NULL OR iss.is_delete = false)
+                      AND (iss.item_qty - COALESCE(iss.picking_qty, 0)) > 0
+                    GROUP BY iss.inv_id
+                ) AS source
+                ON target.id = source.inv_id
+                WHEN MATCHED THEN
+                    UPDATE SET 
+                        item_qty = GREATEST(0, COALESCE(target.item_qty, 0) - source.qty_to_pick),
+                        update_at = CURRENT_TIMESTAMP,
+                        update_by = @userId;";
+
+            await _connection.ExecuteAsync(sqlPicking, new { id = _id, userId = user }, transaction: _transaction);
+
+            // 4. ปรับปรุง picking_qty ใน doc_disposal_detail ให้เท่ากับ item_qty และเติม snapshot หากรายการเก่าเคยบันทึกไว้ยังไม่ครบ
+            const string backfillSnapshotSql = @"
+                UPDATE doc_disposal_detail iss
+                SET item_id = COALESCE(iss.item_id, inv.item_id),
+                    lot_no = COALESCE(iss.lot_no, inv.lot_no),
+                    serial_no = COALESCE(iss.serial_no, inv.serial_no),
+                    location_id = COALESCE(iss.location_id, inv.location_id),
+                    uom_id = COALESCE(iss.uom_id, inv.uom_id),
+                    item_price = COALESCE(iss.item_price, inv.item_price),
+                    mfg_date = COALESCE(iss.mfg_date, inv.mfg_date),
+                    expire_date = COALESCE(iss.expire_date, inv.expire_date)
+                FROM inventory inv
+                WHERE iss.doc_id = @id
+                  AND iss.inv_id = inv.id
+                  AND iss.item_id IS NULL
+                  AND (iss.is_delete IS NULL OR iss.is_delete = false);";
+
+            await _connection.ExecuteAsync(backfillSnapshotSql, new { id = _id }, transaction: _transaction);
+
+            const string updateDetailSql = @"
+                UPDATE doc_disposal_detail 
+                SET picking_qty = item_qty,
+                    update_at = CURRENT_TIMESTAMP,
+                    update_by = @userId
+                WHERE doc_id = @id 
+                  AND (is_delete IS NULL OR is_delete = false);";
+
+            await _connection.ExecuteAsync(updateDetailSql, new { id = _id, userId = user }, transaction: _transaction);
+
+            // 5. ปรับปรุงสถานะของ doc_trans เป็น COMPLETED
+            const string updateTransSql = @"
+                UPDATE doc_trans 
+                SET status_id = (SELECT id FROM mast_status WHERE code = 'COMPLETED' AND is_delete = false LIMIT 1),
+                    status_code = 'COMPLETED',
+                    update_at = CURRENT_TIMESTAMP,
+                    update_by = @userId
+                WHERE id = @id 
+                  AND (is_delete IS NULL OR is_delete = false);";
+
+            var rows = await _connection.ExecuteAsync(updateTransSql, new { id = _id, userId = user }, transaction: _transaction);
+
+            if (rows > 0)
+            {
+                var completedStatusId = await _connection.QueryFirstOrDefaultAsync<string>(
+                    "SELECT id FROM mast_status WHERE code = 'COMPLETED' AND is_delete = false LIMIT 1",
+                    transaction: _transaction);
+
+                // 6. บันทึก Transaction Log
+                const string insertLogSql = @"
+                    INSERT INTO doc_trans_log (
+                        id, doc_id, from_status_id, to_status_id, from_user_id, to_user_id, remark,
+                        is_active, is_delete, create_at, create_by, update_at, update_by
+                    ) VALUES (
+                        @logId, @docId, @fromStatusId, @toStatusId, @userId, @userId, @remark,
+                        true, false, CURRENT_TIMESTAMP, @userId, CURRENT_TIMESTAMP, @userId
+                    );";
+
+                await _connection.ExecuteAsync(insertLogSql, new
+                {
+                    logId = Guid.NewGuid().ToString().ToUpper().Replace("-", ""),
+                    docId = _id,
+                    fromStatusId = docTrans.statusId,
+                    toStatusId = completedStatusId,
+                    userId = user,
+                    remark = "Picking completed - stock deducted from inventory"
+                }, transaction: _transaction);
+
+                return new OkObjectResult(new { success = true, results = _id, message = "Picking DocDisposal Success", error = "" });
+            }
+
+            return new BadRequestObjectResult(new { success = false, results = "", message = "Picking DocDisposal Failed", error = "Document not found or update failed" });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
+        }
+    }
+
+    private async Task PopulateSnapshotFromInventoryAsync(List<DocDisposalDetailRequest>? req)
+    {
+        if (req == null || req.Count == 0)
+        {
+            return;
+        }
+
+        var invIds = req
+            .Where(x => !string.IsNullOrWhiteSpace(x.invDmgId))
+            .Select(x => x.invDmgId!)
+            .Distinct()
+            .ToArray();
+
+        if (invIds.Length == 0)
+        {
+            return;
+        }
+
+        const string sql = @"
+            SELECT
+                id,
+                item_id AS itemId,
+                lot_no AS lotNo,
+                serial_no AS serialNo,
+                uom_id AS uomId,
+                item_price AS itemPrice,
+                mfg_date AS mfgDate,
+                expire_date AS expireDate
+            FROM inventory_damage
+            WHERE id = ANY(@invIds)";
+
+        var invMap = (await _connection.QueryAsync<InventorySnapshotRow>(sql, new { invIds }, transaction: _transaction))
+            .ToDictionary(x => x.id);
+
+        foreach (var item in req)
+        {
+            if (string.IsNullOrWhiteSpace(item.invDmgId) || !invMap.TryGetValue(item.invDmgId, out var inv))
+            {
+                continue;
+            }
+
+            // Always snapshot physical attributes from inventory so history remains accurate if inventory later moves or is cleaned up.
+            item.itemId = inv.itemId ?? item.itemId;
+            item.lotNo = inv.lotNo ?? item.lotNo;
+            item.serialNo = inv.serialNo ?? item.serialNo;
+            item.uomId = inv.uomId ?? item.uomId;
+            item.itemPrice ??= inv.itemPrice;
+            item.mfgDate ??= inv.mfgDate;
+            item.expireDate ??= inv.expireDate;
+        }
+    }
+
+    private sealed class InventorySnapshotRow
+    {
+        public string id { get; set; } = null!;
+        public string? itemId { get; set; }
+        public string? lotNo { get; set; }
+        public string? serialNo { get; set; }
+        public string? uomId { get; set; }
+        public decimal? itemPrice { get; set; }
+        public DateTime? mfgDate { get; set; }
+        public DateTime? expireDate { get; set; }
+    }
+}
+

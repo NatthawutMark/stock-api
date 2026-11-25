@@ -30,7 +30,7 @@ public class DocTypeRepository : IDocTypeRepository
 	                    docType.is_active,
 	                    docType.is_delete
                     FROM mast_doc_type docType
-                    inner join sys_menu menu on docType.menu_id  = menu.id 
+                    inner join system_menu menu on docType.menu_id  = menu.id 
                     WHERE menu.is_active = true AND ";
         if (req != null && req.isActive.HasValue)
         {
@@ -84,7 +84,7 @@ public class DocTypeRepository : IDocTypeRepository
                         SET name = @name, 
                             menu_id = COALESCE(@menuId, menu_id), 
                             update_by = @UpdateBy, 
-                            update_date = @UpdateDate, 
+                            update_at = @UpdateAt, 
                             is_active = @isActive 
                         WHERE id = @id";
             return await _connection.ExecuteAsync(sql, req, transaction: _transaction) > 0

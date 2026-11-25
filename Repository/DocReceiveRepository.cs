@@ -143,7 +143,7 @@ public class DocReceiveRepository : IDocReceiveRepository
                 UPDATE doc_trans 
                 SET status_id = (SELECT id FROM mast_status WHERE code = 'CONFIRM' AND is_delete = false LIMIT 1),
                     status_code = 'CONFIRM',
-                    update_date = CURRENT_TIMESTAMP
+                    update_at = CURRENT_TIMESTAMP
                 WHERE id = @id";
 
             var rows = await _connection.ExecuteAsync(updateSql, new { id }, transaction: _transaction);
@@ -232,7 +232,7 @@ public class DocReceiveRepository : IDocReceiveRepository
                 WHEN MATCHED THEN
                     UPDATE SET 
                         item_qty = COALESCE(target.item_qty, 0) + source.qty_to_putaway,
-                        update_date = CURRENT_TIMESTAMP,
+                        update_at = CURRENT_TIMESTAMP,
                         update_by = @userId
                 WHEN NOT MATCHED THEN
                     INSERT (
@@ -250,9 +250,9 @@ public class DocReceiveRepository : IDocReceiveRepository
                         tracking_code,
                         is_active,
                         is_delete,
-                        create_date,
+                        create_at,
                         create_by,
-                        update_date,
+                        update_at,
                         update_by
                     ) VALUES (
                         UPPER(REPLACE(gen_random_uuid()::text, '-', '')),
@@ -282,7 +282,7 @@ public class DocReceiveRepository : IDocReceiveRepository
             const string updateDetailSql = @"
                 UPDATE doc_receive_detail 
                 SET putaway_qty = item_qty,
-                    update_date = CURRENT_TIMESTAMP,
+                    update_at = CURRENT_TIMESTAMP,
                     update_by = @userId
                 WHERE doc_id = @id 
                   AND (is_delete IS NULL OR is_delete = false);";
@@ -294,7 +294,7 @@ public class DocReceiveRepository : IDocReceiveRepository
                 UPDATE doc_trans 
                 SET status_id = (SELECT id FROM mast_status WHERE code = 'COMPLETED' AND is_delete = false LIMIT 1),
                     status_code = 'COMPLETED',
-                    update_date = CURRENT_TIMESTAMP,
+                    update_at = CURRENT_TIMESTAMP,
                     update_by = @userId
                 WHERE id = @id 
                   AND (is_delete IS NULL OR is_delete = false);";
@@ -311,7 +311,7 @@ public class DocReceiveRepository : IDocReceiveRepository
                 const string insertLogSql = @"
                     INSERT INTO doc_trans_log (
                         id, doc_id, from_status_id, to_status_id, from_user_id, to_user_id, remark,
-                        is_active, is_delete, create_date, create_by, update_date, update_by
+                        is_active, is_delete, create_at, create_by, update_at, update_by
                     ) VALUES (
                         @logId, @docId, @fromStatusId, @toStatusId, @userId, @userId, @remark,
                         true, false, CURRENT_TIMESTAMP, @userId, CURRENT_TIMESTAMP, @userId
@@ -358,7 +358,7 @@ public class DocReceiveRepository : IDocReceiveRepository
                 UPDATE doc_trans 
                 SET status_id = COALESCE(@statusId, (SELECT id FROM mast_status WHERE code = @statusCode AND is_delete = false LIMIT 1), status_id),
                     status_code = COALESCE(@statusCode, (SELECT code FROM mast_status WHERE id = @statusId AND is_delete = false LIMIT 1), status_code),
-                    update_date = CURRENT_TIMESTAMP, 
+                    update_at = CURRENT_TIMESTAMP, 
                     update_by = @userId 
                 WHERE id = @docId AND is_delete = false";
 
@@ -378,7 +378,7 @@ public class DocReceiveRepository : IDocReceiveRepository
                 const string insertLogSql = @"
                     INSERT INTO doc_trans_log (
                         id, doc_id, from_status_id, to_status_id, from_user_id, to_user_id, remark,
-                        is_active, is_delete, create_date, create_by, update_date, update_by
+                        is_active, is_delete, create_at, create_by, update_at, update_by
                     ) VALUES (
                         @logId, @docId, @fromStatusId, @toStatusId, @userId, @userId, @remark,
                         true, false, CURRENT_TIMESTAMP, @userId, CURRENT_TIMESTAMP, @userId
@@ -412,7 +412,7 @@ public class DocReceiveRepository : IDocReceiveRepository
             const string sql = @"
                 UPDATE doc_trans 
                 SET is_delete = true, 
-                    update_date = CURRENT_TIMESTAMP, 
+                    update_at = CURRENT_TIMESTAMP, 
                     update_by = @userId 
                 WHERE id = @id AND is_delete = false";
 
@@ -442,13 +442,13 @@ public class DocReceiveRepository : IDocReceiveRepository
                 dtl.from_user_id AS fromUserId,
                 dtl.to_user_id AS toUserId,
                 dtl.remark,
-                dtl.create_date AS createDate,
+                dtl.create_at AS createAt,
                 dtl.create_by AS createBy
             FROM doc_trans_log dtl
             LEFT JOIN mast_status st_from ON (dtl.from_status_id = st_from.id OR dtl.from_status_id = st_from.code)
             LEFT JOIN mast_status st_to ON (dtl.to_status_id = st_to.id OR dtl.to_status_id = st_to.code)
             WHERE dtl.doc_id = @docId AND dtl.is_delete = false
-            ORDER BY dtl.create_date ASC";
+            ORDER BY dtl.create_at ASC";
 
         var logs = await _connection.QueryAsync<DocTransLogResponse>(sql, new { docId }, transaction: _transaction);
         return logs.ToList();

@@ -33,27 +33,42 @@ public class DocIssueRepository : IDocIssueRepository
             iss.tracking_code AS trackingCode,
             iss.is_active AS isActive,
             iss.is_delete AS isDelete,
-            inv.item_id AS itemId,
+            COALESCE(iss.item_id, inv.item_id) AS itemId,
             item.item_code AS itemCode,
             item.item_name AS itemName,
-            inv.lot_no AS lotNo,
-            inv.serial_no AS serialNo,
-            inv.location_id AS locationId,
+            COALESCE(iss.lot_no, inv.lot_no) AS lotNo,
+            COALESCE(iss.serial_no, inv.serial_no) AS serialNo,
+            COALESCE(iss.location_id, inv.location_id) AS locationId,
             loc.name AS locationName,
-            inv.uom_id AS uomId,
+            COALESCE(iss.uom_id, inv.uom_id) AS uomId,
             uom.name AS uomName,
-            inv.item_price AS itemPrice,
-            inv.item_qty AS availableQty,
-            inv.mfg_date AS mfgDate,
-            inv.expire_date AS expireDate,
-            inv.warehouse_id AS warehouseId,
+            COALESCE(iss.item_price, inv.item_price) AS itemPrice,
+            COALESCE(inv.item_qty, 0) AS availableQty,
+            COALESCE(iss.mfg_date, inv.mfg_date) AS mfgDate,
+            COALESCE(iss.expire_date, inv.expire_date) AS expireDate,
+            COALESCE(inv.warehouse_id, dt.warehouse_id) AS warehouseId,
             wh.warehouse_name AS warehouseName
         FROM doc_issue_detail iss
+        LEFT JOIN doc_trans dt ON iss.doc_id = dt.id
         LEFT JOIN inventory inv ON iss.inv_id = inv.id
-        LEFT JOIN mast_item item ON inv.item_id = item.id
-        LEFT JOIN mast_uom uom ON inv.uom_id = uom.id 
-        LEFT JOIN mast_location loc ON inv.location_id = loc.id
-        LEFT JOIN mast_warehouse wh ON inv.warehouse_id = wh.id ";
+        LEFT JOIN mast_item item ON COALESCE(iss.item_id, inv.item_id) = item.id
+        LEFT JOIN mast_uom uom ON COALESCE(iss.uom_id, inv.uom_id) = uom.id 
+        LEFT JOIN mast_location loc ON COALESCE(iss.location_id, inv.location_id) = loc.id
+        LEFT JOIN mast_warehouse wh ON COALESCE(inv.warehouse_id, dt.warehouse_id) = wh.id ";
+
+    private const string insertIssueDetailSql = @"
+        INSERT INTO doc_issue_detail (
+            id, doc_id, inv_id, item_id, lot_no, serial_no, location_id, uom_id,
+            item_price, mfg_date, expire_date,
+            item_qty, picking_qty, return_qty, tracking_code,
+            is_active, is_delete, create_at, create_by, update_at, update_by
+        ) 
+        VALUES (
+            @id, @docId, @invId, @itemId, @lotNo, @serialNo, @locationId, @uomId,
+            @itemPrice, @mfgDate, @expireDate,
+            @itemQty, COALESCE(@pickingQty, 0), COALESCE(@returnQty, 0), @trackingCode,
+            true, false, CURRENT_TIMESTAMP, @createBy, CURRENT_TIMESTAMP, @updateBy
+        )";
 
     public async Task<List<DocIssueDetailResponse>> List(DocIssueDetailRequest req)
     {
@@ -95,17 +110,9 @@ public class DocIssueRepository : IDocIssueRepository
     {
         try
         {
-            const string insertSql = @"
-                INSERT INTO doc_issue_detail (
-                    id, doc_id, inv_id, item_qty, picking_qty, return_qty,
-                    tracking_code, is_active, is_delete, create_date, create_by, update_date, update_by
-                ) 
-                VALUES (
-                    @id, @docId, @invId, @itemQty, COALESCE(@pickingQty, 0), COALESCE(@returnQty, 0),
-                    @trackingCode, true, false, CURRENT_TIMESTAMP, @createBy, CURRENT_TIMESTAMP, @updateBy
-                )";
+            await PopulateSnapshotFromInventoryAsync(req);
 
-            var rows = await _connection.ExecuteAsync(insertSql, req, transaction: _transaction);
+            var rows = await _connection.ExecuteAsync(insertIssueDetailSql, req, transaction: _transaction);
 
             return rows > 0
                 ? new OkObjectResult(new { success = true, results = "", message = "Create DocIssue Detail Success", error = "" })
@@ -126,17 +133,9 @@ public class DocIssueRepository : IDocIssueRepository
 
             if (req != null && req.Any())
             {
-                const string insertSql = @"
-                    INSERT INTO doc_issue_detail (
-                        id, doc_id, inv_id, item_qty, picking_qty, return_qty,
-                        tracking_code, is_active, is_delete, create_date, create_by, update_date, update_by
-                    ) 
-                    VALUES (
-                        @id, @docId, @invId, @itemQty, COALESCE(@pickingQty, 0), COALESCE(@returnQty, 0),
-                        @trackingCode, true, false, CURRENT_TIMESTAMP, @createBy, CURRENT_TIMESTAMP, @updateBy
-                    )";
+                await PopulateSnapshotFromInventoryAsync(req);
 
-                var rows = await _connection.ExecuteAsync(insertSql, req, transaction: _transaction);
+                var rows = await _connection.ExecuteAsync(insertIssueDetailSql, req, transaction: _transaction);
                 return rows > 0
                     ? new OkObjectResult(new { success = true, results = id, message = "Update DocIssue Detail Success", error = "" })
                     : new BadRequestObjectResult(new { success = false, results = "", message = "Update DocIssue Detail Failed", error = "No rows inserted" });
@@ -161,7 +160,7 @@ public class DocIssueRepository : IDocIssueRepository
                 UPDATE doc_trans 
                 SET status_id = (SELECT id FROM mast_status WHERE code = 'CONFIRM' AND is_delete = false LIMIT 1),
                     status_code = 'CONFIRM',
-                    update_date = CURRENT_TIMESTAMP 
+                    update_at = CURRENT_TIMESTAMP 
                 WHERE id = @id";
             var rows = await _connection.ExecuteAsync(updateSql, new { id }, transaction: _transaction);
 
@@ -223,16 +222,34 @@ public class DocIssueRepository : IDocIssueRepository
                 WHEN MATCHED THEN
                     UPDATE SET 
                         item_qty = GREATEST(0, COALESCE(target.item_qty, 0) - source.qty_to_pick),
-                        update_date = CURRENT_TIMESTAMP,
+                        update_at = CURRENT_TIMESTAMP,
                         update_by = @userId;";
 
             await _connection.ExecuteAsync(sqlPicking, new { id = _id, userId = user }, transaction: _transaction);
 
-            // 4. ปรับปรุง picking_qty ใน doc_issue_detail ให้เท่ากับ item_qty
+            // 4. ปรับปรุง picking_qty ใน doc_issue_detail ให้เท่ากับ item_qty และเติม snapshot หากรายการเก่าเคยบันทึกไว้ยังไม่ครบ
+            const string backfillSnapshotSql = @"
+                UPDATE doc_issue_detail iss
+                SET item_id = COALESCE(iss.item_id, inv.item_id),
+                    lot_no = COALESCE(iss.lot_no, inv.lot_no),
+                    serial_no = COALESCE(iss.serial_no, inv.serial_no),
+                    location_id = COALESCE(iss.location_id, inv.location_id),
+                    uom_id = COALESCE(iss.uom_id, inv.uom_id),
+                    item_price = COALESCE(iss.item_price, inv.item_price),
+                    mfg_date = COALESCE(iss.mfg_date, inv.mfg_date),
+                    expire_date = COALESCE(iss.expire_date, inv.expire_date)
+                FROM inventory inv
+                WHERE iss.doc_id = @id
+                  AND iss.inv_id = inv.id
+                  AND iss.item_id IS NULL
+                  AND (iss.is_delete IS NULL OR iss.is_delete = false);";
+
+            await _connection.ExecuteAsync(backfillSnapshotSql, new { id = _id }, transaction: _transaction);
+
             const string updateDetailSql = @"
                 UPDATE doc_issue_detail 
                 SET picking_qty = item_qty,
-                    update_date = CURRENT_TIMESTAMP,
+                    update_at = CURRENT_TIMESTAMP,
                     update_by = @userId
                 WHERE doc_id = @id 
                   AND (is_delete IS NULL OR is_delete = false);";
@@ -244,7 +261,7 @@ public class DocIssueRepository : IDocIssueRepository
                 UPDATE doc_trans 
                 SET status_id = (SELECT id FROM mast_status WHERE code = 'COMPLETED' AND is_delete = false LIMIT 1),
                     status_code = 'COMPLETED',
-                    update_date = CURRENT_TIMESTAMP,
+                    update_at = CURRENT_TIMESTAMP,
                     update_by = @userId
                 WHERE id = @id 
                   AND (is_delete IS NULL OR is_delete = false);";
@@ -261,7 +278,7 @@ public class DocIssueRepository : IDocIssueRepository
                 const string insertLogSql = @"
                     INSERT INTO doc_trans_log (
                         id, doc_id, from_status_id, to_status_id, from_user_id, to_user_id, remark,
-                        is_active, is_delete, create_date, create_by, update_date, update_by
+                        is_active, is_delete, create_at, create_by, update_at, update_by
                     ) VALUES (
                         @logId, @docId, @fromStatusId, @toStatusId, @userId, @userId, @remark,
                         true, false, CURRENT_TIMESTAMP, @userId, CURRENT_TIMESTAMP, @userId
@@ -286,6 +303,73 @@ public class DocIssueRepository : IDocIssueRepository
         {
             return new BadRequestObjectResult(new { success = false, results = "", message = ex.Message, error = ex.InnerException?.Message });
         }
+    }
+
+    private async Task PopulateSnapshotFromInventoryAsync(List<DocIssueDetailRequest>? req)
+    {
+        if (req == null || req.Count == 0)
+        {
+            return;
+        }
+
+        var invIds = req
+            .Where(x => !string.IsNullOrWhiteSpace(x.invId))
+            .Select(x => x.invId!)
+            .Distinct()
+            .ToArray();
+
+        if (invIds.Length == 0)
+        {
+            return;
+        }
+
+        const string sql = @"
+            SELECT
+                id,
+                item_id AS itemId,
+                lot_no AS lotNo,
+                serial_no AS serialNo,
+                location_id AS locationId,
+                uom_id AS uomId,
+                item_price AS itemPrice,
+                mfg_date AS mfgDate,
+                expire_date AS expireDate
+            FROM inventory
+            WHERE id = ANY(@invIds)";
+
+        var invMap = (await _connection.QueryAsync<InventorySnapshotRow>(sql, new { invIds }, transaction: _transaction))
+            .ToDictionary(x => x.id);
+
+        foreach (var item in req)
+        {
+            if (string.IsNullOrWhiteSpace(item.invId) || !invMap.TryGetValue(item.invId, out var inv))
+            {
+                continue;
+            }
+
+            // Always snapshot physical attributes from inventory so history remains accurate if inventory later moves or is cleaned up.
+            item.itemId = inv.itemId ?? item.itemId;
+            item.lotNo = inv.lotNo ?? item.lotNo;
+            item.serialNo = inv.serialNo ?? item.serialNo;
+            item.locationId = inv.locationId ?? item.locationId;
+            item.uomId = inv.uomId ?? item.uomId;
+            item.itemPrice ??= inv.itemPrice;
+            item.mfgDate ??= inv.mfgDate;
+            item.expireDate ??= inv.expireDate;
+        }
+    }
+
+    private sealed class InventorySnapshotRow
+    {
+        public string id { get; set; } = null!;
+        public string? itemId { get; set; }
+        public string? lotNo { get; set; }
+        public string? serialNo { get; set; }
+        public string? locationId { get; set; }
+        public string? uomId { get; set; }
+        public decimal? itemPrice { get; set; }
+        public DateTime? mfgDate { get; set; }
+        public DateTime? expireDate { get; set; }
     }
 }
 

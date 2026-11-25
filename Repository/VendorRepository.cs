@@ -63,7 +63,7 @@ public class VendorRepository : IVendorRepository
                             remark = @remark, 
                             is_active = COALESCE(@isActive, is_active), 
                             update_by = COALESCE(@UpdateBy, update_by), 
-                            update_date = CURRENT_TIMESTAMP 
+                            update_at = CURRENT_TIMESTAMP 
                         WHERE id = @id OR vend_code = @vendCode";
             var affected = await _connection.ExecuteAsync(sql, req, transaction: _transaction);
             return affected > 0
@@ -80,7 +80,7 @@ public class VendorRepository : IVendorRepository
     {
         try
         {
-            var sql = @"UPDATE mast_vendor SET is_delete = true, update_date = CURRENT_TIMESTAMP WHERE id = @id OR vend_code = @id";
+            var sql = @"UPDATE mast_vendor SET is_delete = true, update_at = CURRENT_TIMESTAMP WHERE id = @id OR vend_code = @id";
             var affected = await _connection.ExecuteAsync(sql, new { id }, transaction: _transaction);
             return affected > 0
                 ? new OkObjectResult(new { success = true, results = "", message = "Delete MastVendor Success", error = "" })

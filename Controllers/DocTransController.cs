@@ -143,9 +143,18 @@ public class DocTransController : ControllerBase
                                 id = _systemService.GenGUID(),
                                 docId = req.id,
                                 invId = item.invId,
+                                itemId = item.itemId,
+                                lotNo = !string.IsNullOrEmpty(item.lotNo) ? item.lotNo.Trim() : null,
+                                serialNo = !string.IsNullOrEmpty(item.serialNo) ? item.serialNo.Trim() : null,
+                                locationId = item.locationId,
+                                uomId = item.uomId,
+                                itemPrice = item.itemPrice,
+                                mfgDate = item.mfgDate,
+                                expireDate = item.expireDate,
                                 itemQty = item.itemQty ?? 0,
                                 pickingQty = 0,
                                 returnQty = 0,
+                                trackingCode = item.trackingCode,
                                 createBy = userId,
                                 updateBy = userId,
                             });
@@ -159,7 +168,38 @@ public class DocTransController : ControllerBase
                 }
                 else if (req.menuId == "322D946D544B4A179EB9E09613CAC5DC") // Return
                 {
-
+                    List<DocReturnDetailRequest> list = new List<DocReturnDetailRequest>();
+                    if (req.details != null)
+                    {
+                        foreach (var item in req.details)
+                        {
+                            list.Add(new DocReturnDetailRequest
+                            {
+                                id = _systemService.GenGUID(),
+                                docId = req.id,
+                                issDetailId = item.issDetailId,
+                                invId = item.invId,
+                                itemId = item.itemId,
+                                itemCode = item.itemCode,
+                                itemName = item.itemName,
+                                lotNo = !string.IsNullOrEmpty(item.lotNo) ? item.lotNo.Trim() : null,
+                                serialNo = !string.IsNullOrEmpty(item.serialNo) ? item.serialNo.Trim() : null,
+                                uomId = item.uomId,
+                                mfgDate = item.mfgDate,
+                                expireDate = item.expireDate,
+                                itemQty = item.itemQty ?? 0,
+                                reasonId = item.reasonId,
+                                itemPrice = item.itemPrice,
+                                createBy = userId,
+                                updateBy = userId,
+                            });
+                        }
+                    }
+                    var resDetail = await _unitOfWork.DocReturns.CreateList(list);
+                    if (resDetail is not OkObjectResult)
+                    {
+                        throw new Exception($"Error Insert Detail ");
+                    }
                 }
                 else if (req.menuId == "680AB9E0D80D4806AD119476FA511EB4") // Stock Disposal
                 {

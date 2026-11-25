@@ -61,7 +61,7 @@ public class EmployeeRepository : IEmployeeRepository
                             remark = COALESCE(@remark, remark),
                             is_active = COALESCE(@isActive, is_active),
                             update_by = COALESCE(@UpdateBy, update_by),
-                            update_date = CURRENT_TIMESTAMP
+                            update_at = CURRENT_TIMESTAMP
                         WHERE id = @id AND is_delete = false";
 
             var affected = await _connection.ExecuteAsync(sql, req, transaction: _transaction);
@@ -79,7 +79,7 @@ public class EmployeeRepository : IEmployeeRepository
     {
         try
         {
-            var sql = @"UPDATE mast_employee SET is_delete = true, update_date = CURRENT_TIMESTAMP WHERE id = @id";
+            var sql = @"UPDATE mast_employee SET is_delete = true, update_at = CURRENT_TIMESTAMP WHERE id = @id";
             var affected = await _connection.ExecuteAsync(sql, new { id }, transaction: _transaction);
             return affected > 0
                 ? new OkObjectResult(new { success = true, results = "", message = "Delete MastEmployee Success", error = "" })

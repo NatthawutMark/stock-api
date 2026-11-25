@@ -53,7 +53,7 @@ public class LocationRepository : ILocationRepository
                             name = @name, 
                             is_active = COALESCE(@isActive, is_active), 
                             update_by = COALESCE(@UpdateBy, update_by), 
-                            update_date = CURRENT_TIMESTAMP 
+                            update_at = CURRENT_TIMESTAMP 
                         WHERE id = @id";
             var affected = await _connection.ExecuteAsync(sql, req, transaction: _transaction);
             return affected > 0
@@ -70,7 +70,7 @@ public class LocationRepository : ILocationRepository
     {
         try
         {
-            var sql = @"UPDATE mast_location SET is_delete = true, update_date = CURRENT_TIMESTAMP WHERE id = @id OR code = @id";
+            var sql = @"UPDATE mast_location SET is_delete = true, update_at = CURRENT_TIMESTAMP WHERE id = @id OR code = @id";
             var affected = await _connection.ExecuteAsync(sql, new { id }, transaction: _transaction);
             return affected > 0
                 ? new OkObjectResult(new { success = true, results = "", message = "Delete MastLocation Success", error = "" })

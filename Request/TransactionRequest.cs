@@ -48,7 +48,7 @@ public static class TransactionRequest
         public string? custId { get; set; }
         public string? warehouseId { get; set; }
         public string? bookingId { get; set; }
-        public string? docIssueReturnId { get; set; }
+        public string? docIssueId { get; set; }
         public string? transferFromWarehouseId { get; set; }
         public string? transferToWarehouseId { get; set; }
         public string? remark { get; set; }
@@ -62,6 +62,7 @@ public static class TransactionRequest
     {
         public string? id { get; set; }
         public string? docId { get; set; }
+        public string? issDetailId { get; set; }
         public string? invId { get; set; }
         public string? itemId { get; set; }
         public string? itemCode { get; set; }
@@ -81,14 +82,14 @@ public static class TransactionRequest
         public decimal? pickingQty { get; set; }
         public decimal? returnQty { get; set; }
         public string? trackingCode { get; set; }
+        public string? reasonId { get; set; }
         public bool? isActive { get; set; } = true;
         public bool? isDelete { get; set; } = false;
         public string? createBy { get; set; }
-        public DateTime? createDate { get; set; }
+        public DateTime? createAt { get; set; }
         public string? updateBy { get; set; }
-        public DateTime? updateDate { get; set; }
+        public DateTime? updateAt { get; set; }
     }
-
 
     public class DocTransUpdateRequest
     {
@@ -104,13 +105,14 @@ public static class TransactionRequest
         public string? custId { get; set; }
         public string? warehouseId { get; set; }
         public string? bookingId { get; set; }
-        public string? docIssueReturnId { get; set; }
+        public string? docIssueId { get; set; }
         public string? transferFromWarehouseId { get; set; }
         public string? transferToWarehouseId { get; set; }
         public string? remark { get; set; }
         public bool? isQualityControl { get; set; }
         public bool? isActive { get; set; }
         public string? updateBy { get; set; }
+        public DateTime? updateAt { get; set; }
     }
 
     public class DocTransUpdateStatusRequest
@@ -143,10 +145,9 @@ public static class TransactionRequest
         public string? statusId { get; set; }
         public string? statusCode { get; set; }
         public string? updateBy { get; set; }
-        public DateTime? updateDate { get; set; }
+        public DateTime? updateAt { get; set; }
         public List<DocReceiveDetailRequest> details { get; set; }
     }
-
     public class DocReceiveDetailRequest
     {
         public string? id { get; set; }
@@ -170,9 +171,9 @@ public static class TransactionRequest
         public bool? isActive { get; set; } = true;
         public bool? isDelete { get; set; } = false;
         public string? createBy { get; set; }
-        public DateTime? createDate { get; set; }
+        public DateTime? createAt { get; set; }
         public string? updateBy { get; set; }
-        public DateTime? updateDate { get; set; }
+        public DateTime? updateAt { get; set; }
     }
 
     public class DocIssueRequest
@@ -190,15 +191,24 @@ public static class TransactionRequest
         public string? statusId { get; set; }
         public string? statusCode { get; set; }
         public string? updateBy { get; set; }
-        public DateTime? updateDate { get; set; }
+        public DateTime? updateAt { get; set; }
         public List<DocIssueDetailRequest> details { get; set; }
     }
-
     public class DocIssueDetailRequest
     {
         public string? id { get; set; }
         public string? docId { get; set; }
         public string? invId { get; set; }
+        public string? itemId { get; set; }
+        public string? itemCode { get; set; }
+        public string? itemName { get; set; }
+        public string? lotNo { get; set; }
+        public string? serialNo { get; set; }
+        public string? locationId { get; set; }
+        public string? uomId { get; set; }
+        public decimal? itemPrice { get; set; }
+        public DateTime? mfgDate { get; set; }
+        public DateTime? expireDate { get; set; }
         public decimal? itemQty { get; set; }
         public decimal? pickingQty { get; set; }
         public decimal? returnQty { get; set; }
@@ -206,9 +216,96 @@ public static class TransactionRequest
         public bool? isActive { get; set; } = true;
         public bool? isDelete { get; set; } = false;
         public string? createBy { get; set; }
-        public DateTime? createDate { get; set; }
+        public DateTime? createAt { get; set; }
         public string? updateBy { get; set; }
-        public DateTime? updateDate { get; set; }
+        public DateTime? updateAt { get; set; }
+    }
+
+    public class DocReturnRequest
+    {
+        public string? id { get; set; }
+        public string? menuId { get; set; }
+        public string? docTypeId { get; set; }
+        public string? docIssueId { get; set; }
+        public string? docNo { get; set; }
+        public DateTime? docDate { get; set; }
+        public string? refDocNo { get; set; }
+        public string? empId { get; set; }
+        public string? custId { get; set; }
+        public string? warehouseId { get; set; }
+        public string? remark { get; set; }
+        public string? statusId { get; set; }
+        public string? statusCode { get; set; }
+        public string? updateBy { get; set; }
+        public DateTime? updateAt { get; set; }
+        public List<DocReturnDetailRequest> details { get; set; }
+    }
+    public class DocReturnDetailRequest
+    {
+        public string? id { get; set; }
+        public string? docId { get; set; }
+        public string? issDetailId { get; set; }
+        public string? invId { get; set; }
+        public string? itemId { get; set; }
+        public string? itemCode { get; set; }
+        public string? itemName { get; set; }
+        public string? lotNo { get; set; }
+        public string? serialNo { get; set; }
+        // public string? locationId { get; set; }
+        public string? uomId { get; set; }
+        public DateTime? mfgDate { get; set; }
+        public DateTime? expireDate { get; set; }
+        public decimal? itemQty { get; set; }
+        public decimal? itemPrice { get; set; }
+        public string? reasonId { get; set; }
+        public bool? isActive { get; set; } = true;
+        public bool? isDelete { get; set; } = false;
+        public string? createBy { get; set; }
+        public DateTime? createAt { get; set; } = DateTime.Now;
+        public string? updateBy { get; set; }
+        public DateTime? updateAt { get; set; } = DateTime.Now;
+    }
+
+  public class DocDisposalRequest
+    {
+        public string? id { get; set; }
+        public string? docNo { get; set; }
+        public DateTime? docDate { get; set; }
+        public string? refDocNo { get; set; }
+        public string? empId { get; set; }
+        public string? warehouseId { get; set; }
+        public string? remark { get; set; }
+        public string? menuId { get; set; }
+        public string? docTypeId { get; set; }
+        public string? statusId { get; set; }
+        public string? statusCode { get; set; }
+        public string? updateBy { get; set; }
+        public DateTime? updateAt { get; set; }
+        public List<DocDisposalDetailRequest> details { get; set; }
+    }
+    public class DocDisposalDetailRequest
+    {
+        public string? id { get; set; }
+        public string? docId { get; set; }
+        public string? invDmgId { get; set; }
+        public string? itemId { get; set; }
+        public string? itemCode { get; set; }
+        public string? itemName { get; set; }
+        public string? lotNo { get; set; }
+        public string? serialNo { get; set; }
+        public string? uomId { get; set; }
+        public decimal? itemPrice { get; set; }
+        public DateTime? mfgDate { get; set; }
+        public DateTime? expireDate { get; set; }
+        public decimal? itemQty { get; set; }
+        public string? reasonId { get; set; }
+        public string? reasonName { get; set; }
+        public bool? isActive { get; set; } = true;
+        public bool? isDelete { get; set; } = false;
+        public string? createBy { get; set; }
+        public DateTime? createAt { get; set; }
+        public string? updateBy { get; set; }
+        public DateTime? updateAt { get; set; }
     }
 
     #endregion

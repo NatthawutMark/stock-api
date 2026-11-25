@@ -45,7 +45,7 @@ public class DocTransRepository : IDocTransRepository
             dt.warehouse_id AS warehouseId,
             wh.warehouse_name  AS warehouseName,
             dt.booking_id AS bookingId,
-            dt.doc_issue_return_id AS docIssueReturnId,
+            dt.doc_issue_id as docIssueId,
             dt.transfer_from_warehouse_id AS transferFromWarehouseId,
             wh_from.warehouse_name  AS transferFromWarehouseName,
             dt.transfer_to_warehouse_id AS transferToWarehouseId,
@@ -54,12 +54,12 @@ public class DocTransRepository : IDocTransRepository
             dt.is_quality_control AS isQualityControl,
             dt.is_active AS isActive,
             dt.is_delete AS isDelete,
-            dt.create_date AS createDate,
+            dt.create_at AS createAt,
             dt.create_by AS createBy,
-            dt.update_date AS updateDate,
+            dt.update_at AS updateAt,
             dt.update_by AS updateBy
         FROM doc_trans dt
-        LEFT JOIN sys_menu sm ON dt.menu_id = sm.id
+        LEFT JOIN system_menu sm ON dt.menu_id = sm.id
         LEFT JOIN mast_status st ON (dt.status_id = st.id OR (dt.status_id IS NULL AND dt.status_code = st.code))
         LEFT JOIN mast_doc_type mdt ON dt.doc_type_id = mdt.id
         LEFT JOIN mast_employee emp ON dt.emp_id = emp.id
@@ -122,7 +122,7 @@ public class DocTransRepository : IDocTransRepository
             sql += " AND dt.doc_date <= @endDate";
         }
 
-        sql += " ORDER BY dt.update_date DESC, dt.create_date DESC LIMIT @pageSize OFFSET @offset";
+        sql += " ORDER BY dt.update_at DESC, dt.create_at DESC LIMIT @pageSize OFFSET @offset";
 
         var param = new
         {
@@ -289,12 +289,12 @@ public class DocTransRepository : IDocTransRepository
             const string insertDocSql = @"
                 INSERT INTO doc_trans (
                     id, menu_id, status_id, status_code, doc_type_id, doc_no, doc_date, ref_doc_no,
-                    emp_id, vend_id, cust_id, warehouse_id, booking_id, doc_issue_return_id,
+                    emp_id, vend_id, cust_id, warehouse_id, booking_id,doc_issue_id,
                     transfer_from_warehouse_id, transfer_to_warehouse_id, remark,
-                    is_quality_control, is_active, is_delete, create_date, create_by, update_date, update_by
+                    is_quality_control, is_active, is_delete, create_at, create_by, update_at, update_by
                 ) VALUES (
                     @id, @menuId, @statusId, @statusCode, @docTypeId, @docNo, @docDate, @refDocNo,
-                    @empId, @vendId, @custId, @warehouseId, @bookingId, @docIssueReturnId,
+                    @empId, @vendId, @custId, @warehouseId, @bookingId, @docIssueId,
                     @transferFromWarehouseId, @transferToWarehouseId, @remark,
                     @isQualityControl, true, false, CURRENT_TIMESTAMP, @createBy, CURRENT_TIMESTAMP, @updateBy
                 )";
@@ -314,7 +314,7 @@ public class DocTransRepository : IDocTransRepository
                 req.custId,
                 req.warehouseId,
                 req.bookingId,
-                req.docIssueReturnId,
+                req.docIssueId,
                 req.transferFromWarehouseId,
                 req.transferToWarehouseId,
                 req.remark,
@@ -329,7 +329,7 @@ public class DocTransRepository : IDocTransRepository
                 const string insertLogSql = @"
                     INSERT INTO doc_trans_log (
                         id, doc_id, from_status_id, to_status_id, from_user_id, to_user_id, remark,
-                        is_active, is_delete, create_date, create_by, update_date, update_by
+                        is_active, is_delete, create_at, create_by, update_at, update_by
                     ) VALUES (
                         @logId, @docId, NULL, @toStatusId, @userId, @userId, 'สร้างเอกสาร',
                         true, false, CURRENT_TIMESTAMP, @userId, CURRENT_TIMESTAMP, @userId
@@ -371,13 +371,13 @@ public class DocTransRepository : IDocTransRepository
                     cust_id = @custId,
                     warehouse_id = @warehouseId,
                     booking_id = @bookingId,
-                    doc_issue_return_id = @docIssueReturnId,
+                    doc_issue_id = @docIssueId,
                     transfer_from_warehouse_id = @transferFromWarehouseId,
                     transfer_to_warehouse_id = @transferToWarehouseId,
                     remark = @remark,
                     is_quality_control = COALESCE(@isQualityControl, is_quality_control),
                     is_active = COALESCE(@isActive, is_active),
-                    update_date = CURRENT_TIMESTAMP,
+                    update_at = CURRENT_TIMESTAMP,
                     update_by = @updateBy
                 WHERE id = @id AND is_delete = false";
 
@@ -412,7 +412,7 @@ public class DocTransRepository : IDocTransRepository
                 UPDATE doc_trans 
                 SET status_id = COALESCE(@statusId, (SELECT id FROM mast_status WHERE code = @statusCode AND is_delete = false LIMIT 1), status_id),
                     status_code = COALESCE(@statusCode, (SELECT code FROM mast_status WHERE id = @statusId AND is_delete = false LIMIT 1), status_code),
-                    update_date = CURRENT_TIMESTAMP, 
+                    update_at = CURRENT_TIMESTAMP, 
                     update_by = @userId 
                 WHERE id = @docId AND is_delete = false";
 
@@ -433,7 +433,7 @@ public class DocTransRepository : IDocTransRepository
                 const string insertLogSql = @"
                     INSERT INTO doc_trans_log (
                         id, doc_id, from_status_id, to_status_id, from_user_id, to_user_id, remark,
-                        is_active, is_delete, create_date, create_by, update_date, update_by
+                        is_active, is_delete, create_at, create_by, update_at, update_by
                     ) VALUES (
                         @logId, @docId, @fromStatusId, @toStatusId, @userId, @userId, @remark,
                         true, false, CURRENT_TIMESTAMP, @userId, CURRENT_TIMESTAMP, @userId
@@ -467,7 +467,7 @@ public class DocTransRepository : IDocTransRepository
             const string sql = @"
                 UPDATE doc_trans 
                 SET is_delete = true, 
-                    update_date = CURRENT_TIMESTAMP, 
+                    update_at = CURRENT_TIMESTAMP, 
                     update_by = @userId 
                 WHERE id = @id AND is_delete = false";
 
@@ -489,7 +489,7 @@ public class DocTransRepository : IDocTransRepository
             const string sql = @"
                 UPDATE doc_trans 
                 SET doc_no = @docNo, 
-                    update_date = CURRENT_TIMESTAMP 
+                    update_at = CURRENT_TIMESTAMP 
                 WHERE id = @id AND is_delete = false";
 
             var rows = await _connection.ExecuteAsync(sql, new { id, docNo }, transaction: _transaction);
@@ -518,13 +518,13 @@ public class DocTransRepository : IDocTransRepository
                 dtl.from_user_id AS fromUserId,
                 dtl.to_user_id AS toUserId,
                 dtl.remark,
-                dtl.create_date AS createDate,
+                dtl.create_at AS createAt,
                 dtl.create_by AS createBy
             FROM doc_trans_log dtl
             LEFT JOIN mast_status st_from ON (dtl.from_status_id = st_from.id OR dtl.from_status_id = st_from.code)
             LEFT JOIN mast_status st_to ON (dtl.to_status_id = st_to.id OR dtl.to_status_id = st_to.code)
             WHERE dtl.doc_id = @docId AND dtl.is_delete = false
-            ORDER BY dtl.create_date ASC";
+            ORDER BY dtl.create_at ASC";
 
         var logs = await _connection.QueryAsync<DocTransLogResponse>(sql, new { docId }, transaction: _transaction);
         return logs.ToList();

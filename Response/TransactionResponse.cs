@@ -28,7 +28,7 @@ public static class TransactionResponse
         public string? warehouseId { get; set; }
         public string? warehouseName { get; set; }
         public string? bookingId { get; set; }
-        public string? docIssueReturnId { get; set; }
+        public string? docIssueId { get; set; }
         public string? transferFromWarehouseId { get; set; }
         public string? transferFromWarehouseName { get; set; }
         public string? transferToWarehouseId { get; set; }
@@ -37,9 +37,9 @@ public static class TransactionResponse
         public bool isQualityControl { get; set; }
         public bool isActive { get; set; }
         public bool isDelete { get; set; }
-        public DateTime createDate { get; set; }
+        public DateTime createAt { get; set; }
         public string? createBy { get; set; }
-        public DateTime updateDate { get; set; }
+        public DateTime updateAt { get; set; }
         public string? updateBy { get; set; }
         public List<DocTransLogResponse>? logs { get; set; }
     }
@@ -56,7 +56,7 @@ public static class TransactionResponse
         public string? fromUserId { get; set; }
         public string? toUserId { get; set; }
         public string? remark { get; set; }
-        public DateTime createDate { get; set; }
+        public DateTime createAt { get; set; }
         public string? createBy { get; set; }
     }
     public class DocReceiveDetailResponse
@@ -109,6 +109,46 @@ public static class TransactionResponse
         public DateTime? expireDate { get; set; }
         public string? warehouseId { get; set; }
         public string? warehouseName { get; set; }
+    }
+    public class DocReturnDetailResponse
+    {
+        public string? id { get; set; }
+        public string? docId { get; set; }
+        public string? issDetailId { get; set; }
+        public string? invId { get; set; }
+        public string? itemId { get; set; }
+        public string? itemCode { get; set; }
+        public string? itemName { get; set; }
+        public string? lotNo { get; set; }
+        public string? serialNo { get; set; }
+        public string? uomId { get; set; }
+        public string? uomName { get; set; }
+        public DateTime? mfgDate { get; set; }
+        public DateTime? expireDate { get; set; }
+        public decimal? itemQty { get; set; }
+        public decimal? itemPrice { get; set; }
+        public string? reasonId { get; set; }
+        public string? reasonName { get; set; }
+    }
+    public class DocDisposalDetailResponse
+    {
+        public string? id { get; set; }
+        public string? docId { get; set; }
+        public string? invDmgId { get; set; }
+        public string? itemId { get; set; }
+        public string? itemCode { get; set; }
+        public string? itemName { get; set; }
+        public string? lotNo { get; set; }
+        public string? serialNo { get; set; }
+        public decimal? itemQty { get; set; }
+        public decimal? itemPrice { get; set; }
+        public string? uomId { get; set; }
+        public DateTime? mfgDate { get; set; }
+        public DateTime? expireDate { get; set; }
+        public string? reasonId { get; set; }
+        public string? reasonName { get; set; }
+        public bool? isActive { get; set; } = true;
+        public bool? isDelete { get; set; } = false;
     }
 
 }

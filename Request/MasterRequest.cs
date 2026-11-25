@@ -17,14 +17,14 @@ public class MasterRequest
         public string? locationId { get; set; }
         public decimal? buyPrice { get; set; }
         public decimal? sellPrice { get; set; }
-        public bool? isLotno { get; set; }
+        public bool? isLotNo { get; set; }
         public bool? isSerialNo { get; set; }
         public bool? isActive { get; set; }
         public bool? isDelete { get; set; }
         public string? createBy { get; set; }
-        public string? createDate { get; set; }
+        public string? createAt { get; set; }
         public string? UpdateBy { get; set; }
-        public string? UpdateDate { get; set; }
+        public string? UpdateAt { get; set; }
         public string? originalItemCode { get; set; }
     }
     public class MastBrandRequest
@@ -35,22 +35,22 @@ public class MasterRequest
         public bool isActive { get; set; }
         public bool isDelete { get; set; }
         public string? createBy { get; set; }
-        public string? createDate { get; set; }
+        public string? createAt { get; set; }
         public string? UpdateBy { get; set; }
-        public string? UpdateDate { get; set; }
+        public string? UpdateAt { get; set; }
     }
     public class MastLocationRequest
     {
         public string? id { get; set; }
         public string? code { get; set; }
         public string? name { get; set; }
-        public string? warehouseId { get; set;}
+        public string? warehouseId { get; set; }
         public bool? isActive { get; set; }
         public bool? isDelete { get; set; }
         public string? createBy { get; set; }
-        public string? createDate { get; set; }
+        public string? createAt { get; set; }
         public string? UpdateBy { get; set; }
-        public string? UpdateDate { get; set; }
+        public string? UpdateAt { get; set; }
     }
     public class MastWarehouseRequest
     {
@@ -62,6 +62,7 @@ public class MasterRequest
         public bool? isActive { get; set; }
         public bool? isDelete { get; set; }
         public string? createBy { get; set; }
+        public string? createAt { get; set; }
         public string? UpdateBy { get; set; }
         public string? originalCode { get; set; }
     }
@@ -190,7 +191,7 @@ public class MasterRequest
         public bool? isDelete { get; set; }
         public string? createBy { get; set; }
         public string? UpdateBy { get; set; }
-        public DateTime? UpdateDate { get; set; }
+        public DateTime? UpdateAt { get; set; }
     }
     public class MastItemGroupRequest
     {

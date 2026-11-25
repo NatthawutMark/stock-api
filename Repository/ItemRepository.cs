@@ -99,7 +99,7 @@ public class ItemRepository : IItemRepository
             var sql = @"INSERT INTO mast_item (
                 id, item_code, item_name, brand_id, min_alert, max_alert,
                 uom_id, location_id, buy_price, sell_price, is_lotno, is_serialno,
-                is_active, is_delete, create_by, update_by, create_date, update_date
+                is_active, is_delete, create_by, update_by, create_at, update_at
             ) VALUES (
                 @id, @itemCode, @itemName, @brandId, @minAlert, @maxAlert,
                 @uomId, @locationId, @buyPrice, @sellPrice, COALESCE(@isLotno, false), COALESCE(@isSerialNo, false),
@@ -134,7 +134,7 @@ public class ItemRepository : IItemRepository
                             is_serialno = COALESCE(@isSerialNo, is_serialno),
                             is_active = COALESCE(@isActive, is_active),
                             update_by = @UpdateBy,
-                            update_date = CURRENT_TIMESTAMP
+                            update_at = CURRENT_TIMESTAMP
                         WHERE id = @id";
             var affected = await _connection.ExecuteAsync(sql, req, transaction: _transaction);
             return affected > 0
@@ -151,7 +151,7 @@ public class ItemRepository : IItemRepository
     {
         try
         {
-            var sql = @"UPDATE mast_item SET is_delete = true, update_date = CURRENT_TIMESTAMP WHERE id = @id";
+            var sql = @"UPDATE mast_item SET is_delete = true, update_at = CURRENT_TIMESTAMP WHERE id = @id";
             var affected = await _connection.ExecuteAsync(sql, new { id }, transaction: _transaction);
             return affected > 0
                 ? new OkObjectResult(new { success = true, results = "", message = "Delete MastItem Success", error = "" })

@@ -61,7 +61,7 @@ public class InventoriesRepository : IInventoriesRepository
         try
         {
             var (whereSql, parameters) = BuildFilter(req);
-            string sql = $"{baseSql} {whereSql} ORDER BY inv.update_date desc, inv.create_date desc";
+            string sql = $"{baseSql} {whereSql} ORDER BY inv.update_at desc, inv.create_at desc";
 
             var result = await _connection.QueryAsync<InventoryList>(sql, parameters, transaction: _transaction);
             return result.ToList();

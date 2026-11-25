@@ -191,4 +191,5 @@ public class MasterResponse
         public bool? isDelete { get; set; }
     }
     #endregion
+
 }

@@ -13,6 +13,6 @@ public class SystemMenuRequest
     public bool IsActive { get; set; } = true;
     public string? CreateBy { get; set; }
     public string? UpdateBy { get; set; }
-    public DateTime? UpdateDate { get; set; }
+    public DateTime? UpdateAt { get; set; }
 
 }

@@ -24,6 +24,10 @@ public class SystemService : ISystemService
         _connectionString = configuration?.GetConnectionString("DefaultConnection") ?? _connection.ConnectionString;
     }
 
+    public SystemService()
+    {
+    }
+
     private NpgsqlConnection CreateConnection()
     {
         return new NpgsqlConnection(_connectionString);
@@ -113,8 +117,8 @@ public class SystemService : ISystemService
                    menu.is_active AS isActive,
                    menu.menu_type AS menuType,
                    menu.icon
-            FROM sys_menu_user mu
-            INNER JOIN sys_menu menu ON mu.menu_id = menu.id
+            FROM system_menu_user mu
+            INNER JOIN system_menu menu ON mu.menu_id = menu.id
             LEFT JOIN user_authen ua ON mu.user_id = ua.user_id
             WHERE (mu.user_id = @userIdentifier OR ua.username = @userIdentifier)
               AND mu.is_active = true
@@ -200,11 +204,11 @@ public class SystemService : ISystemService
                 menu.name_en AS nameEn,
                 CONCAT(menu.name_th, '(', menu.name_en, ')') AS menuName,
                 menu.order_no AS orderNo
-            FROM sys_menu_user mu
-            INNER JOIN sys_menu menu ON mu.menu_id = menu.id
+            FROM system_menu_user mu
+            INNER JOIN system_menu menu ON mu.menu_id = menu.id
             LEFT JOIN user_authen ua ON mu.user_id = ua.user_id
             WHERE (mu.user_id = @userIdentifier OR ua.username = @userIdentifier)
-              AND (UPPER(menu.menu_type) = 'TRANSACTION' OR menu.parent_id IN (SELECT id FROM sys_menu WHERE name_th = 'รายการเอกสาร' OR name_en ILIKE '%document%' OR name_en ILIKE '%transaction%'))
+              AND (UPPER(menu.menu_type) = 'TRANSACTION' OR menu.parent_id IN (SELECT id FROM system_menu WHERE name_th = 'รายการเอกสาร' OR name_en ILIKE '%document%' OR name_en ILIKE '%transaction%'))
               AND mu.is_active = true
               AND (mu.is_delete = false OR mu.is_delete IS NULL)
               AND menu.is_active = true
@@ -278,14 +282,14 @@ public class SystemService : ISystemService
             // 4. บันทึก Running Number (Insert ถ้ายังไม่มี / Update ถ้ามีอยู่แล้ว)
             if (running == null)
             {
-                string sqlInsertRunning = @"INSERT INTO doc_number_running (id, config_id, running_year, running_month, current_number, last_doc_no, update_date) 
+                string sqlInsertRunning = @"INSERT INTO doc_number_running (id, config_id, running_year, running_month, current_number, last_doc_no, update_at) 
                                         VALUES (@id, @configId, @year, @month, @currentNumber, @lastDocNo, CURRENT_TIMESTAMP)";
                 await conn.ExecuteAsync(sqlInsertRunning, new { id = GenGUID(), configId = cfg.Id, year, month, currentNumber, lastDocNo = docNo }, tx);
             }
             else
             {
                 string sqlUpdateRunning = @"UPDATE doc_number_running 
-                                        SET current_number = @currentNumber, last_doc_no = @lastDocNo, update_date = CURRENT_TIMESTAMP 
+                                        SET current_number = @currentNumber, last_doc_no = @lastDocNo, update_at = CURRENT_TIMESTAMP 
                                         WHERE id = @id";
                 await conn.ExecuteAsync(sqlUpdateRunning, new { currentNumber, lastDocNo = docNo, id = running.Id }, tx);
             }

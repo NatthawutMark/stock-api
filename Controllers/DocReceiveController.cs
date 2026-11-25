@@ -101,7 +101,7 @@ public class DocReceiveController : ControllerBase
                 data.warehouseId = resHeader.warehouseId;
                 data.warehouseName = resHeader.warehouseName;
                 data.bookingId = resHeader.bookingId;
-                data.docIssueReturnId = resHeader.docIssueReturnId;
+                data.docIssueId = resHeader.docIssueId;
                 data.transferFromWarehouseId = resHeader.transferFromWarehouseId;
                 data.transferFromWarehouseName = resHeader.transferFromWarehouseName;
                 data.transferToWarehouseId = resHeader.transferToWarehouseId;

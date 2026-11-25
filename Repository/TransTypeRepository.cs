@@ -29,7 +29,7 @@ public class TransTypeRepository : ITransTypeRepository
                         concat(name_th, '(', name_en, ')') as menuName,
                         is_active as isActive,
                         is_delete as isDelete
-                    FROM sys_menu 
+                    FROM system_menu 
                     WHERE menu_type = 'TRANSACTION' AND is_active = true AND is_delete = false
                     ORDER BY order_no";
         return (await _connection.QueryAsync<MastTransTypeResponse>(sql, req, transaction: _transaction)).ToList();

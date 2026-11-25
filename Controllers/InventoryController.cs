@@ -54,7 +54,7 @@ public class InventoryController : ControllerBase
         }
     }
 
-    [HttpPost("list", Name = "ListInventory")]
+    [HttpPost("list", Name = "ListInventoryByFliter")]
     public async Task<ActionResult<List<InventoryList>>> List([FromBody] InventoryRequest req)
     {
         try

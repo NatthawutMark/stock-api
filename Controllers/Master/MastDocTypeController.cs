@@ -133,7 +133,7 @@ public class MastDocTypeController : ControllerBase
             string userId = _systemService.GetUserId();
 
             req.UpdateBy = userId;
-            req.UpdateDate = DateTime.Now;
+            req.UpdateAt = DateTime.Now;
 
             var result = await _unitOfWork.DocTypes.update(req);
             if (result is OkObjectResult okResult)

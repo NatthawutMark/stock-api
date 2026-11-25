@@ -63,7 +63,7 @@ public class CustomerRepository : ICustomerRepository
                             remark = @remark, 
                             is_active = COALESCE(@isActive, is_active), 
                             update_by = COALESCE(@UpdateBy, update_by), 
-                            update_date = CURRENT_TIMESTAMP 
+                            update_at = CURRENT_TIMESTAMP 
                         WHERE (id = @id AND @id IS NOT NULL AND @id != '') 
                            OR (cust_code = @originalCustCode AND @originalCustCode IS NOT NULL AND @originalCustCode != '')
                            OR (cust_code = @custCode AND (@id IS NULL OR @id = ''))";
@@ -83,7 +83,7 @@ public class CustomerRepository : ICustomerRepository
     {
         try
         {
-            var sql = @"UPDATE mast_customer SET is_delete = true, update_date = CURRENT_TIMESTAMP WHERE id = @id OR cust_code = @id";
+            var sql = @"UPDATE mast_customer SET is_delete = true, update_at = CURRENT_TIMESTAMP WHERE id = @id OR cust_code = @id";
             var affected = await _connection.ExecuteAsync(sql, new { id }, transaction: _transaction);
             return affected > 0
                 ? new OkObjectResult(new { success = true, results = "", message = "Delete MastCustomer Success", error = "" })

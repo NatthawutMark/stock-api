@@ -22,6 +22,6 @@ public class RunningDocResponse
         public int? RunningMonth { get; set; }
         public int CurrentNumber { get; set; }
         public string LastDocNo { get; set; }
-        public DateTime? UpdateDate { get; set; }
+        public DateTime? UpdateAt { get; set; }
     }
 }

@@ -51,8 +51,8 @@ public class AuthRepository : IAuthRepository
     }
     public async Task<roles?> GetListRole(string userid)
     {
-        var sql = @"select sr.id as roleId,name_th as roleTh,name_en as roleEn from sys_role sr
-                    inner join sys_role_user sru on sr.id = sru.role_id  
+        var sql = @"select sr.id as roleId,name_th as roleTh,name_en as roleEn from system_role sr
+                    inner join system_role_user sru on sr.id = sru.role_id  
                     where sru.user_id  = @userid";
 
         return await _connection.QueryFirstOrDefaultAsync<roles>(sql, new { userid }, transaction: _transaction);
@@ -68,8 +68,8 @@ public class AuthRepository : IAuthRepository
                         menu.url,
                         menu.order_no as orderNo,
                         menu.is_active as isActive
-                    from sys_menu_user mu
-                    inner join sys_menu menu on mu.menu_id = menu.id
+                    from system_menu_user mu
+                    inner join system_menu menu on mu.menu_id = menu.id
                     where mu.user_id = @userid and mu.is_active = true";
 
             return await _connection.QueryAsync<Menus>(sql, new { userid }, transaction: _transaction);
@@ -83,8 +83,8 @@ public class AuthRepository : IAuthRepository
     #region Refresh Token
     public async Task<int> AddRefreshTokenAsync(RefreshtokenRequest token)
     {
-        var sql = @"INSERT INTO refreshtoken (id, user_id, token, expiry_date, is_revoked, create_date)
-                    VALUES (@Id, @UserId, @Token, @ExpiryDate, @IsRevoked, @CreateDate)";
+        var sql = @"INSERT INTO refreshtoken (id, user_id, token, expiry_date, is_revoked, create_at)
+                    VALUES (@Id, @UserId, @Token, @ExpiryDate, @IsRevoked, @CreateAt)";
 
         return await _connection.ExecuteAsync(sql, token, transaction: _transaction);
     }
@@ -96,7 +96,7 @@ public class AuthRepository : IAuthRepository
                            token         AS Token,
                            expiry_date   AS ExpiryDate,
                            is_revoked    AS IsRevoked,
-                           create_date   AS CreateDate,
+                           create_at     AS CreateAt,
                            revoked_date  AS RevokedDate,
                            replaced_token AS ReplacedToken
                     FROM refreshtoken
@@ -133,7 +133,7 @@ public class AuthRepository : IAuthRepository
     {
         var sql = @"DELETE FROM refreshtoken
                     WHERE expiry_date < @now
-                       OR (is_revoked = true AND create_date < @oldDate)";
+                       OR (is_revoked = true AND create_at < @oldDate)";
 
         var now = DateTime.Now;
         return await _connection.ExecuteAsync(sql, new { now, oldDate = now.AddDays(-revokedOlderThanDays) }, transaction: _transaction);
